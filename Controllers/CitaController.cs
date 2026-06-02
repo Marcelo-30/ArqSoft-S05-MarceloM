@@ -36,6 +36,25 @@ namespace CitasApp.Controllers
                 Hora = new TimeOnly(9, 00),
                 Motivo = "Revisión",
                 Estado = "Pendiente"
+            },
+            new Cita
+            {
+                Id = "C4",
+                PacienteId = "P3",
+                MedicoId = "M3",
+                Fecha = new DateOnly(2026, 6, 2),
+                Hora = new TimeOnly(14, 30),
+                Motivo = "Problemas de piel",
+                Estado = "Cancelada"
+            },
+            new Cita             {
+                Id = "C5",
+                PacienteId = "P4",
+                MedicoId = "M4",
+                Fecha = new DateOnly(2026, 6, 3),
+                Hora = new TimeOnly(11, 00),
+                Motivo = "Dolor de cabeza",
+                Estado = "Confirmada"
             }
         };
 

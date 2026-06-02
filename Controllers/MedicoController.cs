@@ -22,6 +22,22 @@ namespace CitasApp.Controllers
                 Apellido = "Gómez",
                 Especialidad = "Pediatría",
                 NumeroLicencia = "LIC67890"
+            },
+            new Medico
+            {
+                Id = "M3",
+                Nombre = "Carlos",
+                Apellido = "Sánchez",
+                Especialidad = "Dermatología",
+                NumeroLicencia = "LIC54321"
+            },
+            new Medico
+            {
+                Id = "M4",
+                Nombre = "Ana",
+                Apellido = "Martínez",
+                Especialidad = "Neurología",
+                NumeroLicencia = "LIC98765"
             }
         };
 

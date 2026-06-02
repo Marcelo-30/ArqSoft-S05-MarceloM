@@ -22,6 +22,20 @@ namespace CitasApp.Controllers
                 Apellido = "López",
                 Email = "ana@gmail.com",
                 Telefono = "9997654321"
+            },
+            new Paciente             {
+                Id = "P3",
+                Nombre = "Luis",
+                Apellido = "García",
+                Email = "luis@gmail.com",
+                Telefono = "9999876543"
+            },
+            new Paciente             {
+                Id = "P4",
+                Nombre = "María",
+                Apellido = "Fernández",
+                Email = "maria@gmail.com",
+                Telefono = "9991112222"
             }
         };
 
