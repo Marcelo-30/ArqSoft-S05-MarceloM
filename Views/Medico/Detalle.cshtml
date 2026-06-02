@@ -1,0 +1,23 @@
+﻿@model CitasApp.Models.Medico
+
+<h1>Detalle del médico</h1>
+
+<div style="margin-bottom: 20px;">
+    <a href="/Paciente" class="btn btn-primary">Pacientes</a>
+    <a href="/Medico" class="btn btn-success">Médicos</a>
+    <a href="/Cita" class="btn btn-warning">Citas</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p><strong>Id:</strong> @Model.Id</p>
+        <p><strong>Nombre:</strong> @Model.Nombre</p>
+        <p><strong>Apellido:</strong> @Model.Apellido</p>
+        <p><strong>Especialidad:</strong> @Model.Especialidad</p>
+        <p><strong>Número de licencia:</strong> @Model.NumeroLicencia</p>
+    </div>
+</div>
+
+<br />
+
+<a href="/Medico" class="btn btn-secondary">Volver</a>

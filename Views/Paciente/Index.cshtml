@@ -1,0 +1,46 @@
+﻿@model List<CitasApp.Models.Paciente>
+
+<h1>Pacientes registrados</h1>
+
+<div style="margin-bottom: 20px;">
+    <a href="/Paciente" class="btn btn-primary">Pacientes</a>
+    <a href="/Medico" class="btn btn-success">Médicos</a>
+    <a href="/Cita" class="btn btn-warning">Citas</a>
+</div>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Detalle</th>
+            <th>Citas</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var paciente in Model)
+        {
+            <tr>
+                <td>@paciente.Id</td>
+                <td>@paciente.Nombre</td>
+                <td>@paciente.Apellido</td>
+                <td>@paciente.Email</td>
+                <td>@paciente.Telefono</td>
+                <td>
+                    <a href="/Paciente/Detalle/@paciente.Id" class="btn btn-info">
+                        Ver detalle
+                    </a>
+                </td>
+                <td>
+                    <a href="/Cita/PorPaciente?pacienteId=@paciente.Id" class="btn btn-secondary">
+                        Ver citas
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

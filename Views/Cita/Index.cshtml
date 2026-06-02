@@ -1,0 +1,38 @@
+﻿@model List<CitasApp.Models.Cita>
+
+<h1>Agenda completa de citas</h1>
+
+<div style="margin-bottom: 20px;">
+    <a href="/Paciente" class="btn btn-primary">Pacientes</a>
+    <a href="/Medico" class="btn btn-success">Médicos</a>
+    <a href="/Cita" class="btn btn-warning">Citas</a>
+</div>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>PacienteId</th>
+            <th>MedicoId</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Motivo</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var cita in Model)
+        {
+            <tr>
+                <td>@cita.Id</td>
+                <td>@cita.PacienteId</td>
+                <td>@cita.MedicoId</td>
+                <td>@cita.Fecha</td>
+                <td>@cita.Hora</td>
+                <td>@cita.Motivo</td>
+                <td>@cita.Estado</td>
+            </tr>
+        }
+    </tbody>
+</table>
