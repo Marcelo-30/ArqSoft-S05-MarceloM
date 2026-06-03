@@ -1,51 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using CitasApp.Models;
+using CitasApp.Services;
 
 namespace CitasApp.Controllers
 {
     public class PacienteController : Controller
     {
-        private static List<Paciente> pacientes = new List<Paciente>
+        private readonly JsonFileService<Paciente> _pacienteService;
+
+        public PacienteController(IWebHostEnvironment env)
         {
-            new Paciente
-            {
-                Id = "P1",
-                Nombre = "Carlos",
-                Apellido = "Ramírez",
-                Email = "carlos@gmail.com",
-                Telefono = "9991234567"
-            },
-            new Paciente
-            {
-                Id = "P2",
-                Nombre = "Ana",
-                Apellido = "López",
-                Email = "ana@gmail.com",
-                Telefono = "9997654321"
-            },
-            new Paciente             {
-                Id = "P3",
-                Nombre = "Luis",
-                Apellido = "García",
-                Email = "luis@gmail.com",
-                Telefono = "9999876543"
-            },
-            new Paciente             {
-                Id = "P4",
-                Nombre = "María",
-                Apellido = "Fernández",
-                Email = "maria@gmail.com",
-                Telefono = "9991112222"
-            }
-        };
+            var ruta = Path.Combine(env.ContentRootPath, "Data", "pacientes.json");
+            _pacienteService = new JsonFileService<Paciente>(ruta);
+        }
 
         public IActionResult Index()
         {
+            var pacientes = _pacienteService.Leer();
             return View(pacientes);
         }
 
         public IActionResult Detalle(string id)
         {
+            var pacientes = _pacienteService.Leer();
             var paciente = pacientes.FirstOrDefault(p => p.Id == id);
 
             if (paciente == null)
@@ -54,6 +31,26 @@ namespace CitasApp.Controllers
             }
 
             return View(paciente);
+        }
+
+        [HttpGet]
+        public IActionResult Crear()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult Crear(Paciente paciente)
+        {
+            var pacientes = _pacienteService.Leer();
+
+            paciente.Id = "P" + (pacientes.Count + 1);
+
+            pacientes.Add(paciente);
+
+            _pacienteService.Guardar(pacientes);
+
+            return RedirectToAction("Index");
         }
     }
 }

@@ -1,75 +1,86 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using CitasApp.Models;
+using CitasApp.Services;
 
 namespace CitasApp.Controllers
 {
     public class CitaController : Controller
     {
-        private static List<Cita> citas = new List<Cita>
+        private readonly JsonFileService<Cita> _citaService;
+        private readonly JsonFileService<Paciente> _pacienteService;
+        private readonly JsonFileService<Medico> _medicoService;
+
+        public CitaController(IWebHostEnvironment env)
         {
-            new Cita
-            {
-                Id = "C1",
-                PacienteId = "P1",
-                MedicoId = "M1",
-                Fecha = new DateOnly(2026, 5, 30),
-                Hora = new TimeOnly(10, 30),
-                Motivo = "Dolor en el pecho",
-                Estado = "Pendiente"
-            },
-            new Cita
-            {
-                Id = "C2",
-                PacienteId = "P2",
-                MedicoId = "M2",
-                Fecha = new DateOnly(2026, 5, 31),
-                Hora = new TimeOnly(12, 00),
-                Motivo = "Consulta general",
-                Estado = "Confirmada"
-            },
-            new Cita
-            {
-                Id = "C3",
-                PacienteId = "P1",
-                MedicoId = "M2",
-                Fecha = new DateOnly(2026, 6, 1),
-                Hora = new TimeOnly(9, 00),
-                Motivo = "Revisión",
-                Estado = "Pendiente"
-            },
-            new Cita
-            {
-                Id = "C4",
-                PacienteId = "P3",
-                MedicoId = "M3",
-                Fecha = new DateOnly(2026, 6, 2),
-                Hora = new TimeOnly(14, 30),
-                Motivo = "Problemas de piel",
-                Estado = "Cancelada"
-            },
-            new Cita             {
-                Id = "C5",
-                PacienteId = "P4",
-                MedicoId = "M4",
-                Fecha = new DateOnly(2026, 6, 3),
-                Hora = new TimeOnly(11, 00),
-                Motivo = "Dolor de cabeza",
-                Estado = "Confirmada"
-            }
-        };
+            var rutaCitas = Path.Combine(env.ContentRootPath, "Data", "citas.json");
+            var rutaPacientes = Path.Combine(env.ContentRootPath, "Data", "pacientes.json");
+            var rutaMedicos = Path.Combine(env.ContentRootPath, "Data", "medicos.json");
+
+            _citaService = new JsonFileService<Cita>(rutaCitas);
+            _pacienteService = new JsonFileService<Paciente>(rutaPacientes);
+            _medicoService = new JsonFileService<Medico>(rutaMedicos);
+        }
 
         public IActionResult Index()
         {
+            var citas = _citaService.Leer();
             return View(citas);
         }
 
         public IActionResult PorPaciente(string pacienteId)
         {
+            var citas = _citaService.Leer();
+
             var citasPaciente = citas
                 .Where(c => c.PacienteId == pacienteId)
                 .ToList();
 
             return View(citasPaciente);
+        }
+
+        [HttpGet]
+        public IActionResult Crear()
+        {
+            CargarListas();
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult Crear(Cita cita)
+        {
+            var citas = _citaService.Leer();
+
+            cita.Id = "C" + (citas.Count + 1);
+
+            if (string.IsNullOrWhiteSpace(cita.Estado))
+            {
+                cita.Estado = "Pendiente";
+            }
+
+            citas.Add(cita);
+
+            _citaService.Guardar(citas);
+
+            return RedirectToAction("Index");
+        }
+
+        private void CargarListas()
+        {
+            var pacientes = _pacienteService.Leer();
+            var medicos = _medicoService.Leer();
+
+            ViewBag.Pacientes = new SelectList(
+                pacientes,
+                "Id",
+                "Nombre"
+            );
+
+            ViewBag.Medicos = new SelectList(
+                medicos,
+                "Id",
+                "Nombre"
+            );
         }
     }
 }

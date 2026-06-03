@@ -1,0 +1,37 @@
+[
+  {
+    "Id": "P1",
+    "Nombre": "Carlos",
+    "Apellido": "Ram\u00EDrez",
+    "Email": "carlos.ramirez@gmail.com",
+    "Telefono": "9991234567"
+  },
+  {
+    "Id": "P2",
+    "Nombre": "Ana",
+    "Apellido": "L\u00F3pez",
+    "Email": "ana.lopez@gmail.com",
+    "Telefono": "9997654321"
+  },
+  {
+    "Id": "P3",
+    "Nombre": "Luis",
+    "Apellido": "Mart\u00EDnez",
+    "Email": "luis.martinez@gmail.com",
+    "Telefono": "9991112233"
+  },
+  {
+    "Id": "P4",
+    "Nombre": "Mar\u00EDa",
+    "Apellido": "G\u00F3mez",
+    "Email": "maria.gomez@gmail.com",
+    "Telefono": "9994445566"
+  },
+  {
+    "Id": "P5",
+    "Nombre": "Marcelo",
+    "Apellido": "Medina ",
+    "Email": "marcelo@gmail.com",
+    "Telefono": "12239484"
+  }
+]

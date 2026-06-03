@@ -1,53 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using CitasApp.Models;
+using CitasApp.Services;
 
 namespace CitasApp.Controllers
 {
     public class MedicoController : Controller
     {
-        private static List<Medico> medicos = new List<Medico>
+        private readonly JsonFileService<Medico> _medicoService;
+
+        public MedicoController(IWebHostEnvironment env)
         {
-            new Medico
-            {
-                Id = "M1",
-                Nombre = "Luis",
-                Apellido = "Fernández",
-                Especialidad = "Cardiología",
-                NumeroLicencia = "LIC12345"
-            },
-            new Medico
-            {
-                Id = "M2",
-                Nombre = "María",
-                Apellido = "Gómez",
-                Especialidad = "Pediatría",
-                NumeroLicencia = "LIC67890"
-            },
-            new Medico
-            {
-                Id = "M3",
-                Nombre = "Carlos",
-                Apellido = "Sánchez",
-                Especialidad = "Dermatología",
-                NumeroLicencia = "LIC54321"
-            },
-            new Medico
-            {
-                Id = "M4",
-                Nombre = "Ana",
-                Apellido = "Martínez",
-                Especialidad = "Neurología",
-                NumeroLicencia = "LIC98765"
-            }
-        };
+            var ruta = Path.Combine(env.ContentRootPath, "Data", "medicos.json");
+            _medicoService = new JsonFileService<Medico>(ruta);
+        }
 
         public IActionResult Index()
         {
+            var medicos = _medicoService.Leer();
             return View(medicos);
         }
 
         public IActionResult Detalle(string id)
         {
+            var medicos = _medicoService.Leer();
             var medico = medicos.FirstOrDefault(m => m.Id == id);
 
             if (medico == null)
@@ -56,6 +31,26 @@ namespace CitasApp.Controllers
             }
 
             return View(medico);
+        }
+
+        [HttpGet]
+        public IActionResult Crear()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult Crear(Medico medico)
+        {
+            var medicos = _medicoService.Leer();
+
+            medico.Id = "M" + (medicos.Count + 1);
+
+            medicos.Add(medico);
+
+            _medicoService.Guardar(medicos);
+
+            return RedirectToAction("Index");
         }
     }
 }
