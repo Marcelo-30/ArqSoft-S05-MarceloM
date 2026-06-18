@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace CitasApp.Services
 {
-    public class JsonFileService<T>
+    public class JsonFileService<T> : IJsonFileService<T>
     {
         private readonly string _filePath;
 

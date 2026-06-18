@@ -1,0 +1,813 @@
+diff --git a/Controllers/CitaController.cs b/Controllers/CitaController.cs
+index a256cc7..36cd7db 100644
+--- a/Controllers/CitaController.cs
++++ b/Controllers/CitaController.cs
+@@ -7,19 +7,18 @@ namespace CitasApp.Controllers
+ {
+     public class CitaController : Controller
+     {
+-        private readonly JsonFileService<Cita> _citaService;
+-        private readonly JsonFileService<Paciente> _pacienteService;
+-        private readonly JsonFileService<Medico> _medicoService;
+-
+-        public CitaController(IWebHostEnvironment env)
++        private readonly IJsonFileService<Cita> _citaService;
++        private readonly IJsonFileService<Paciente> _pacienteService;
++        private readonly IJsonFileService<Medico> _medicoService;
++
++        public CitaController(
++            IJsonFileService<Cita> citaService,
++            IJsonFileService<Paciente> pacienteService,
++            IJsonFileService<Medico> medicoService)
+         {
+-            var rutaCitas = Path.Combine(env.ContentRootPath, "Data", "citas.json");
+-            var rutaPacientes = Path.Combine(env.ContentRootPath, "Data", "pacientes.json");
+-            var rutaMedicos = Path.Combine(env.ContentRootPath, "Data", "medicos.json");
+-
+-            _citaService = new JsonFileService<Cita>(rutaCitas);
+-            _pacienteService = new JsonFileService<Paciente>(rutaPacientes);
+-            _medicoService = new JsonFileService<Medico>(rutaMedicos);
++            _citaService = citaService;
++            _pacienteService = pacienteService;
++            _medicoService = medicoService;
+         }
+ 
+         public IActionResult Index()
+@@ -28,6 +27,19 @@ namespace CitasApp.Controllers
+             return View(citas);
+         }
+ 
++        public IActionResult Detalle(string id)
++        {
++            var citas = _citaService.Leer();
++            var cita = citas.FirstOrDefault(c => c.Id == id);
++
++            if (cita == null)
++            {
++                return NotFound();
++            }
++
++            return View(cita);
++        }
++
+         public IActionResult PorPaciente(string pacienteId)
+         {
+             var citas = _citaService.Leer();
+@@ -47,11 +59,12 @@ namespace CitasApp.Controllers
+         }
+ 
+         [HttpPost]
++        [ValidateAntiForgeryToken]
+         public IActionResult Crear(Cita cita)
+         {
+             var citas = _citaService.Leer();
+ 
+-            cita.Id = "C" + (citas.Count + 1);
++            cita.Id = GenerarSiguienteId(citas);
+ 
+             if (string.IsNullOrWhiteSpace(cita.Estado))
+             {
+@@ -65,7 +78,66 @@ namespace CitasApp.Controllers
+             return RedirectToAction("Index");
+         }
+ 
+-        private void CargarListas()
++        [HttpGet]
++        public IActionResult Editar(string id)
++        {
++            var citas = _citaService.Leer();
++            var cita = citas.FirstOrDefault(c => c.Id == id);
++
++            if (cita == null)
++            {
++                return NotFound();
++            }
++
++            CargarListas(cita.PacienteId, cita.MedicoId);
++            return View(cita);
++        }
++
++        [HttpPost]
++        [ValidateAntiForgeryToken]
++        public IActionResult Editar(Cita cita)
++        {
++            var citas = _citaService.Leer();
++            var citaExistente = citas.FirstOrDefault(c => c.Id == cita.Id);
++
++            if (citaExistente == null)
++            {
++                return NotFound();
++            }
++
++            citaExistente.PacienteId = cita.PacienteId;
++            citaExistente.MedicoId = cita.MedicoId;
++            citaExistente.Fecha = cita.Fecha;
++            citaExistente.Hora = cita.Hora;
++            citaExistente.Motivo = cita.Motivo;
++            citaExistente.Estado = string.IsNullOrWhiteSpace(cita.Estado)
++                ? "Pendiente"
++                : cita.Estado;
++
++            _citaService.Guardar(citas);
++
++            return RedirectToAction("Index");
++        }
++
++        [HttpPost]
++        [ValidateAntiForgeryToken]
++        public IActionResult Eliminar(string id)
++        {
++            var citas = _citaService.Leer();
++            var cita = citas.FirstOrDefault(c => c.Id == id);
++
++            if (cita == null)
++            {
++                return NotFound();
++            }
++
++            citas.Remove(cita);
++            _citaService.Guardar(citas);
++
++            return RedirectToAction("Index");
++        }
++
++        private void CargarListas(string? pacienteSeleccionado = null, string? medicoSeleccionado = null)
+         {
+             var pacientes = _pacienteService.Leer();
+             var medicos = _medicoService.Leer();
+@@ -73,14 +145,28 @@ namespace CitasApp.Controllers
+             ViewBag.Pacientes = new SelectList(
+                 pacientes,
+                 "Id",
+-                "Nombre"
++                "Nombre",
++                pacienteSeleccionado
+             );
+ 
+             ViewBag.Medicos = new SelectList(
+                 medicos,
+                 "Id",
+-                "Nombre"
++                "Nombre",
++                medicoSeleccionado
+             );
+         }
++
++        private static string GenerarSiguienteId(List<Cita> citas)
++        {
++            var ultimoNumero = citas
++                .Select(c => c.Id)
++                .Where(id => !string.IsNullOrWhiteSpace(id) && id.StartsWith("C"))
++                .Select(id => int.TryParse(id[1..], out var numero) ? numero : 0)
++                .DefaultIfEmpty(0)
++                .Max();
++
++            return $"C{ultimoNumero + 1}";
++        }
+     }
+ }
+diff --git a/Controllers/MedicoController.cs b/Controllers/MedicoController.cs
+index f5090e4..0e406be 100644
+--- a/Controllers/MedicoController.cs
++++ b/Controllers/MedicoController.cs
+@@ -6,12 +6,15 @@ namespace CitasApp.Controllers
+ {
+     public class MedicoController : Controller
+     {
+-        private readonly JsonFileService<Medico> _medicoService;
++        private readonly IJsonFileService<Medico> _medicoService;
++        private readonly IJsonFileService<Cita> _citaService;
+ 
+-        public MedicoController(IWebHostEnvironment env)
++        public MedicoController(
++            IJsonFileService<Medico> medicoService,
++            IJsonFileService<Cita> citaService)
+         {
+-            var ruta = Path.Combine(env.ContentRootPath, "Data", "medicos.json");
+-            _medicoService = new JsonFileService<Medico>(ruta);
++            _medicoService = medicoService;
++            _citaService = citaService;
+         }
+ 
+         public IActionResult Index()
+@@ -40,17 +43,90 @@ namespace CitasApp.Controllers
+         }
+ 
+         [HttpPost]
++        [ValidateAntiForgeryToken]
+         public IActionResult Crear(Medico medico)
+         {
+             var medicos = _medicoService.Leer();
+ 
+-            medico.Id = "M" + (medicos.Count + 1);
+-
++            medico.Id = GenerarSiguienteId(medicos);
+             medicos.Add(medico);
+ 
+             _medicoService.Guardar(medicos);
+ 
+             return RedirectToAction("Index");
+         }
++
++        [HttpGet]
++        public IActionResult Editar(string id)
++        {
++            var medicos = _medicoService.Leer();
++            var medico = medicos.FirstOrDefault(m => m.Id == id);
++
++            if (medico == null)
++            {
++                return NotFound();
++            }
++
++            return View(medico);
++        }
++
++        [HttpPost]
++        [ValidateAntiForgeryToken]
++        public IActionResult Editar(Medico medico)
++        {
++            var medicos = _medicoService.Leer();
++            var medicoExistente = medicos.FirstOrDefault(m => m.Id == medico.Id);
++
++            if (medicoExistente == null)
++            {
++                return NotFound();
++            }
++
++            medicoExistente.Nombre = medico.Nombre;
++            medicoExistente.Apellido = medico.Apellido;
++            medicoExistente.Especialidad = medico.Especialidad;
++            medicoExistente.NumeroLicencia = medico.NumeroLicencia;
++
++            _medicoService.Guardar(medicos);
++
++            return RedirectToAction("Index");
++        }
++
++        [HttpPost]
++        [ValidateAntiForgeryToken]
++        public IActionResult Eliminar(string id)
++        {
++            var medicos = _medicoService.Leer();
++            var medico = medicos.FirstOrDefault(m => m.Id == id);
++
++            if (medico == null)
++            {
++                return NotFound();
++            }
++
++            medicos.Remove(medico);
++            _medicoService.Guardar(medicos);
++
++            var citas = _citaService.Leer();
++            var citasActualizadas = citas
++                .Where(c => c.MedicoId != id)
++                .ToList();
++
++            _citaService.Guardar(citasActualizadas);
++
++            return RedirectToAction("Index");
++        }
++
++        private static string GenerarSiguienteId(List<Medico> medicos)
++        {
++            var ultimoNumero = medicos
++                .Select(m => m.Id)
++                .Where(id => !string.IsNullOrWhiteSpace(id) && id.StartsWith("M"))
++                .Select(id => int.TryParse(id[1..], out var numero) ? numero : 0)
++                .DefaultIfEmpty(0)
++                .Max();
++
++            return $"M{ultimoNumero + 1}";
++        }
+     }
+ }
+diff --git a/Controllers/PacienteController.cs b/Controllers/PacienteController.cs
+index 2f4e282..6032eeb 100644
+--- a/Controllers/PacienteController.cs
++++ b/Controllers/PacienteController.cs
+@@ -6,12 +6,15 @@ namespace CitasApp.Controllers
+ {
+     public class PacienteController : Controller
+     {
+-        private readonly JsonFileService<Paciente> _pacienteService;
++        private readonly IJsonFileService<Paciente> _pacienteService;
++        private readonly IJsonFileService<Cita> _citaService;
+ 
+-        public PacienteController(IWebHostEnvironment env)
++        public PacienteController(
++            IJsonFileService<Paciente> pacienteService,
++            IJsonFileService<Cita> citaService)
+         {
+-            var ruta = Path.Combine(env.ContentRootPath, "Data", "pacientes.json");
+-            _pacienteService = new JsonFileService<Paciente>(ruta);
++            _pacienteService = pacienteService;
++            _citaService = citaService;
+         }
+ 
+         public IActionResult Index()
+@@ -40,17 +43,90 @@ namespace CitasApp.Controllers
+         }
+ 
+         [HttpPost]
++        [ValidateAntiForgeryToken]
+         public IActionResult Crear(Paciente paciente)
+         {
+             var pacientes = _pacienteService.Leer();
+ 
+-            paciente.Id = "P" + (pacientes.Count + 1);
+-
++            paciente.Id = GenerarSiguienteId(pacientes);
+             pacientes.Add(paciente);
+ 
+             _pacienteService.Guardar(pacientes);
+ 
+             return RedirectToAction("Index");
+         }
++
++        [HttpGet]
++        public IActionResult Editar(string id)
++        {
++            var pacientes = _pacienteService.Leer();
++            var paciente = pacientes.FirstOrDefault(p => p.Id == id);
++
++            if (paciente == null)
++            {
++                return NotFound();
++            }
++
++            return View(paciente);
++        }
++
++        [HttpPost]
++        [ValidateAntiForgeryToken]
++        public IActionResult Editar(Paciente paciente)
++        {
++            var pacientes = _pacienteService.Leer();
++            var pacienteExistente = pacientes.FirstOrDefault(p => p.Id == paciente.Id);
++
++            if (pacienteExistente == null)
++            {
++                return NotFound();
++            }
++
++            pacienteExistente.Nombre = paciente.Nombre;
++            pacienteExistente.Apellido = paciente.Apellido;
++            pacienteExistente.Email = paciente.Email;
++            pacienteExistente.Telefono = paciente.Telefono;
++
++            _pacienteService.Guardar(pacientes);
++
++            return RedirectToAction("Index");
++        }
++
++        [HttpPost]
++        [ValidateAntiForgeryToken]
++        public IActionResult Eliminar(string id)
++        {
++            var pacientes = _pacienteService.Leer();
++            var paciente = pacientes.FirstOrDefault(p => p.Id == id);
++
++            if (paciente == null)
++            {
++                return NotFound();
++            }
++
++            pacientes.Remove(paciente);
++            _pacienteService.Guardar(pacientes);
++
++            var citas = _citaService.Leer();
++            var citasActualizadas = citas
++                .Where(c => c.PacienteId != id)
++                .ToList();
++
++            _citaService.Guardar(citasActualizadas);
++
++            return RedirectToAction("Index");
++        }
++
++        private static string GenerarSiguienteId(List<Paciente> pacientes)
++        {
++            var ultimoNumero = pacientes
++                .Select(p => p.Id)
++                .Where(id => !string.IsNullOrWhiteSpace(id) && id.StartsWith("P"))
++                .Select(id => int.TryParse(id[1..], out var numero) ? numero : 0)
++                .DefaultIfEmpty(0)
++                .Max();
++
++            return $"P{ultimoNumero + 1}";
++        }
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/Program.cs b/Program.cs
+index 1510d12..04d2ad9 100644
+--- a/Program.cs
++++ b/Program.cs
+@@ -1,8 +1,32 @@
++using CitasApp.Models;
++using CitasApp.Services;
++
+ var builder = WebApplication.CreateBuilder(args);
+ 
+ // Add services to the container.
+ builder.Services.AddControllersWithViews();
+ 
++builder.Services.AddSingleton<IJsonFileService<Paciente>>(serviceProvider =>
++{
++    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
++    var ruta = Path.Combine(env.ContentRootPath, "Data", "pacientes.json");
++    return new JsonFileService<Paciente>(ruta);
++});
++
++builder.Services.AddSingleton<IJsonFileService<Medico>>(serviceProvider =>
++{
++    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
++    var ruta = Path.Combine(env.ContentRootPath, "Data", "medicos.json");
++    return new JsonFileService<Medico>(ruta);
++});
++
++builder.Services.AddSingleton<IJsonFileService<Cita>>(serviceProvider =>
++{
++    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
++    var ruta = Path.Combine(env.ContentRootPath, "Data", "citas.json");
++    return new JsonFileService<Cita>(ruta);
++});
++
+ var app = builder.Build();
+ 
+ // Configure the HTTP request pipeline.
+@@ -25,5 +49,4 @@ app.MapControllerRoute(
+     pattern: "{controller=Home}/{action=Index}/{id?}")
+     .WithStaticAssets();
+ 
+-
+ app.Run();
+diff --git a/Services/IJsonFileService.cs b/Services/IJsonFileService.cs
+new file mode 100644
+index 0000000..9abe86d
+--- /dev/null
++++ b/Services/IJsonFileService.cs
+@@ -0,0 +1,8 @@
++namespace CitasApp.Services
++{
++    public interface IJsonFileService<T>
++    {
++        List<T> Leer();
++        void Guardar(List<T> datos);
++    }
++}
+diff --git a/Services/JsonFileService.cs b/Services/JsonFileService.cs
+index 8fa3991..0841fce 100644
+--- a/Services/JsonFileService.cs
++++ b/Services/JsonFileService.cs
+@@ -1,8 +1,8 @@
+-﻿using System.Text.Json;
++using System.Text.Json;
+ 
+ namespace CitasApp.Services
+ {
+-    public class JsonFileService<T>
++    public class JsonFileService<T> : IJsonFileService<T>
+     {
+         private readonly string _filePath;
+ 
+diff --git a/Views/Cita/Detalle.cshtml b/Views/Cita/Detalle.cshtml
+index 6259eb5..2848d05 100644
+--- a/Views/Cita/Detalle.cshtml
++++ b/Views/Cita/Detalle.cshtml
+@@ -2,31 +2,30 @@
+ 
+ <h2>Detalle Cita</h2>
+ 
+-<div>
+-    <strong>Id:</strong> @Model.Id
++<div style="margin-bottom: 20px;">
++    <a href="/Paciente" class="btn btn-primary">Pacientes</a>
++    <a href="/Medico" class="btn btn-success">Médicos</a>
++    <a href="/Cita" class="btn btn-warning">Citas</a>
+ </div>
+ 
+-<div>
+-    <strong>Paciente:</strong> @Model.PacienteId
++<div class="card">
++    <div class="card-body">
++        <p><strong>Id:</strong> @Model.Id</p>
++        <p><strong>Paciente:</strong> @Model.PacienteId</p>
++        <p><strong>Médico:</strong> @Model.MedicoId</p>
++        <p><strong>Fecha:</strong> @Model.Fecha</p>
++        <p><strong>Hora:</strong> @Model.Hora</p>
++        <p><strong>Estado:</strong> @Model.Estado</p>
++        <p><strong>Motivo:</strong> @Model.Motivo</p>
++    </div>
+ </div>
+ 
+-<div>
+-    <strong>Médico:</strong> @Model.MedicoId
+-</div>
+-
+-<div>
+-    <strong>Fecha:</strong> @Model.Fecha
+-</div>
+-
+-<div>
+-    <strong>Estado:</strong> @Model.Estado
+-</div>
+-
+-<div>
+-    <strong>Motivo:</strong> 
+-    @Model.Motivo
+-</div>
++<br />
+ 
+-<p>
+-    <a asp-action="Index">Volver</a>
+-</p>
++<a asp-action="Index" class="btn btn-secondary">Volver</a>
++<a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a>
++<form asp-action="Eliminar" asp-route-id="@Model.Id" method="post" class="d-inline">
++    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Seguro que deseas eliminar esta cita?');">
++        Eliminar
++    </button>
++</form>
+diff --git a/Views/Cita/Editar.cshtml b/Views/Cita/Editar.cshtml
+new file mode 100644
+index 0000000..db86047
+--- /dev/null
++++ b/Views/Cita/Editar.cshtml
+@@ -0,0 +1,48 @@
++﻿@model CitasApp.Models.Cita
++
++<h1>Editar cita</h1>
++
++<form asp-action="Editar" method="post">
++    <input asp-for="Id" type="hidden" />
++
++    <div class="mb-3">
++        <label class="form-label">Paciente</label>
++        <select asp-for="PacienteId" asp-items="ViewBag.Pacientes" class="form-control">
++            <option value="">Selecciona un paciente</option>
++        </select>
++    </div>
++
++    <div class="mb-3">
++        <label class="form-label">Médico</label>
++        <select asp-for="MedicoId" asp-items="ViewBag.Medicos" class="form-control">
++            <option value="">Selecciona un médico</option>
++        </select>
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Fecha" class="form-label"></label>
++        <input asp-for="Fecha" type="date" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Hora" class="form-label"></label>
++        <input asp-for="Hora" type="time" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Motivo" class="form-label"></label>
++        <input asp-for="Motivo" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Estado" class="form-label"></label>
++        <select asp-for="Estado" class="form-control">
++            <option value="Pendiente">Pendiente</option>
++            <option value="Confirmada">Confirmada</option>
++            <option value="Cancelada">Cancelada</option>
++        </select>
++    </div>
++
++    <button type="submit" class="btn btn-primary">Guardar cambios</button>
++    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
++</form>
+diff --git a/Views/Cita/Index.cshtml b/Views/Cita/Index.cshtml
+index 056c74c..f7ef017 100644
+--- a/Views/Cita/Index.cshtml
++++ b/Views/Cita/Index.cshtml
+@@ -20,6 +20,7 @@
+             <th>Hora</th>
+             <th>Motivo</th>
+             <th>Estado</th>
++            <th>Acciones</th>
+         </tr>
+     </thead>
+ 
+@@ -34,6 +35,19 @@
+                 <td>@cita.Hora</td>
+                 <td>@cita.Motivo</td>
+                 <td>@cita.Estado</td>
++                <td>
++                    <a asp-action="Detalle" asp-route-id="@cita.Id" class="btn btn-info btn-sm">
++                        Ver
++                    </a>
++                    <a asp-action="Editar" asp-route-id="@cita.Id" class="btn btn-primary btn-sm">
++                        Editar
++                    </a>
++                    <form asp-action="Eliminar" asp-route-id="@cita.Id" method="post" class="d-inline">
++                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar esta cita?');">
++                            Eliminar
++                        </button>
++                    </form>
++                </td>
+             </tr>
+         }
+     </tbody>
+diff --git a/Views/Cita/PorPaciente.cshtml b/Views/Cita/PorPaciente.cshtml
+index 8477d8a..4bf2e6c 100644
+--- a/Views/Cita/PorPaciente.cshtml
++++ b/Views/Cita/PorPaciente.cshtml
+@@ -26,6 +26,7 @@ else
+                 <th>Hora</th>
+                 <th>Motivo</th>
+                 <th>Estado</th>
++                <th>Acciones</th>
+             </tr>
+         </thead>
+ 
+@@ -40,6 +41,19 @@ else
+                     <td>@cita.Hora</td>
+                     <td>@cita.Motivo</td>
+                     <td>@cita.Estado</td>
++                    <td>
++                        <a asp-action="Detalle" asp-route-id="@cita.Id" class="btn btn-info btn-sm">
++                            Ver
++                        </a>
++                        <a asp-action="Editar" asp-route-id="@cita.Id" class="btn btn-primary btn-sm">
++                            Editar
++                        </a>
++                        <form asp-action="Eliminar" asp-route-id="@cita.Id" method="post" class="d-inline">
++                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar esta cita?');">
++                                Eliminar
++                            </button>
++                        </form>
++                    </td>
+                 </tr>
+             }
+         </tbody>
+diff --git a/Views/Medico/Detalle.cshtml b/Views/Medico/Detalle.cshtml
+index 2854166..623f8d2 100644
+--- a/Views/Medico/Detalle.cshtml
++++ b/Views/Medico/Detalle.cshtml
+@@ -21,3 +21,9 @@
+ <br />
+ 
+ <a href="/Medico" class="btn btn-secondary">Volver</a>
++<a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a>
++<form asp-action="Eliminar" asp-route-id="@Model.Id" method="post" class="d-inline">
++    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Seguro que deseas eliminar este médico? También se eliminarán sus citas.');">
++        Eliminar
++    </button>
++</form>
+diff --git a/Views/Medico/Editar.cshtml b/Views/Medico/Editar.cshtml
+new file mode 100644
+index 0000000..cd5c5bd
+--- /dev/null
++++ b/Views/Medico/Editar.cshtml
+@@ -0,0 +1,30 @@
++﻿@model CitasApp.Models.Medico
++
++<h1>Editar médico</h1>
++
++<form asp-action="Editar" method="post">
++    <input asp-for="Id" type="hidden" />
++
++    <div class="mb-3">
++        <label asp-for="Nombre" class="form-label"></label>
++        <input asp-for="Nombre" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Apellido" class="form-label"></label>
++        <input asp-for="Apellido" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Especialidad" class="form-label"></label>
++        <input asp-for="Especialidad" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="NumeroLicencia" class="form-label">Número de licencia</label>
++        <input asp-for="NumeroLicencia" class="form-control" />
++    </div>
++
++    <button type="submit" class="btn btn-primary">Guardar cambios</button>
++    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
++</form>
+diff --git a/Views/Medico/Index.cshtml b/Views/Medico/Index.cshtml
+index d8f2cc7..2e80190 100644
+--- a/Views/Medico/Index.cshtml
++++ b/Views/Medico/Index.cshtml
+@@ -19,6 +19,7 @@
+             <th>Especialidad</th>
+             <th>Número de licencia</th>
+             <th>Detalle</th>
++            <th>Acciones</th>
+         </tr>
+     </thead>
+ 
+@@ -36,6 +37,16 @@
+                         Ver detalle
+                     </a>
+                 </td>
++                <td>
++                    <a asp-action="Editar" asp-route-id="@medico.Id" class="btn btn-primary btn-sm">
++                        Editar
++                    </a>
++                    <form asp-action="Eliminar" asp-route-id="@medico.Id" method="post" class="d-inline">
++                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este médico? También se eliminarán sus citas.');">
++                            Eliminar
++                        </button>
++                    </form>
++                </td>
+             </tr>
+         }
+     </tbody>
+diff --git a/Views/Paciente/Detalle.cshtml b/Views/Paciente/Detalle.cshtml
+index 1c7eb53..bb721fd 100644
+--- a/Views/Paciente/Detalle.cshtml
++++ b/Views/Paciente/Detalle.cshtml
+@@ -21,6 +21,12 @@
+ <br />
+ 
+ <a href="/Paciente" class="btn btn-secondary">Volver</a>
++<a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a>
++<form asp-action="Eliminar" asp-route-id="@Model.Id" method="post" class="d-inline">
++    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Seguro que deseas eliminar este paciente? También se eliminarán sus citas.');">
++        Eliminar
++    </button>
++</form>
+ 
+ <a href="/Cita/PorPaciente?pacienteId=@Model.Id" class="btn btn-warning">
+     Ver citas de este paciente
+diff --git a/Views/Paciente/Editar.cshtml b/Views/Paciente/Editar.cshtml
+new file mode 100644
+index 0000000..133ab2a
+--- /dev/null
++++ b/Views/Paciente/Editar.cshtml
+@@ -0,0 +1,30 @@
++﻿@model CitasApp.Models.Paciente
++
++<h1>Editar paciente</h1>
++
++<form asp-action="Editar" method="post">
++    <input asp-for="Id" type="hidden" />
++
++    <div class="mb-3">
++        <label asp-for="Nombre" class="form-label"></label>
++        <input asp-for="Nombre" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Apellido" class="form-label"></label>
++        <input asp-for="Apellido" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Email" class="form-label"></label>
++        <input asp-for="Email" class="form-control" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Telefono" class="form-label">Teléfono</label>
++        <input asp-for="Telefono" class="form-control" />
++    </div>
++
++    <button type="submit" class="btn btn-primary">Guardar cambios</button>
++    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
++</form>
+diff --git a/Views/Paciente/Index.cshtml b/Views/Paciente/Index.cshtml
+index b989ae9..38a5e65 100644
+--- a/Views/Paciente/Index.cshtml
++++ b/Views/Paciente/Index.cshtml
+@@ -20,6 +20,7 @@
+             <th>Teléfono</th>
+             <th>Detalle</th>
+             <th>Citas</th>
++            <th>Acciones</th>
+         </tr>
+     </thead>
+ 
+@@ -42,6 +43,16 @@
+                         Ver citas
+                     </a>
+                 </td>
++                <td>
++                    <a asp-action="Editar" asp-route-id="@paciente.Id" class="btn btn-primary btn-sm">
++                        Editar
++                    </a>
++                    <form asp-action="Eliminar" asp-route-id="@paciente.Id" method="post" class="d-inline">
++                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este paciente? También se eliminarán sus citas.');">
++                            Eliminar
++                        </button>
++                    </form>
++                </td>
+             </tr>
+         }
+     </tbody>

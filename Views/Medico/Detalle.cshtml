@@ -21,3 +21,9 @@
 <br />
 
 <a href="/Medico" class="btn btn-secondary">Volver</a>
+<a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a>
+<form asp-action="Eliminar" asp-route-id="@Model.Id" method="post" class="d-inline">
+    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Seguro que deseas eliminar este médico? También se eliminarán sus citas.');">
+        Eliminar
+    </button>
+</form>

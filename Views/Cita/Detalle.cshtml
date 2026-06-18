@@ -2,31 +2,30 @@
 
 <h2>Detalle Cita</h2>
 
-<div>
-    <strong>Id:</strong> @Model.Id
+<div style="margin-bottom: 20px;">
+    <a href="/Paciente" class="btn btn-primary">Pacientes</a>
+    <a href="/Medico" class="btn btn-success">Médicos</a>
+    <a href="/Cita" class="btn btn-warning">Citas</a>
 </div>
 
-<div>
-    <strong>Paciente:</strong> @Model.PacienteId
+<div class="card">
+    <div class="card-body">
+        <p><strong>Id:</strong> @Model.Id</p>
+        <p><strong>Paciente:</strong> @Model.PacienteId</p>
+        <p><strong>Médico:</strong> @Model.MedicoId</p>
+        <p><strong>Fecha:</strong> @Model.Fecha</p>
+        <p><strong>Hora:</strong> @Model.Hora</p>
+        <p><strong>Estado:</strong> @Model.Estado</p>
+        <p><strong>Motivo:</strong> @Model.Motivo</p>
+    </div>
 </div>
 
-<div>
-    <strong>Médico:</strong> @Model.MedicoId
-</div>
+<br />
 
-<div>
-    <strong>Fecha:</strong> @Model.Fecha
-</div>
-
-<div>
-    <strong>Estado:</strong> @Model.Estado
-</div>
-
-<div>
-    <strong>Motivo:</strong> 
-    @Model.Motivo
-</div>
-
-<p>
-    <a asp-action="Index">Volver</a>
-</p>
+<a asp-action="Index" class="btn btn-secondary">Volver</a>
+<a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a>
+<form asp-action="Eliminar" asp-route-id="@Model.Id" method="post" class="d-inline">
+    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Seguro que deseas eliminar esta cita?');">
+        Eliminar
+    </button>
+</form>

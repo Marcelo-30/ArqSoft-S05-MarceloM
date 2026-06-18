@@ -20,6 +20,7 @@
             <th>Teléfono</th>
             <th>Detalle</th>
             <th>Citas</th>
+            <th>Acciones</th>
         </tr>
     </thead>
 
@@ -41,6 +42,16 @@
                     <a href="/Cita/PorPaciente?pacienteId=@paciente.Id" class="btn btn-secondary">
                         Ver citas
                     </a>
+                </td>
+                <td>
+                    <a asp-action="Editar" asp-route-id="@paciente.Id" class="btn btn-primary btn-sm">
+                        Editar
+                    </a>
+                    <form asp-action="Eliminar" asp-route-id="@paciente.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este paciente? También se eliminarán sus citas.');">
+                            Eliminar
+                        </button>
+                    </form>
                 </td>
             </tr>
         }

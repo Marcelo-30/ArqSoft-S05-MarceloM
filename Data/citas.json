@@ -9,15 +9,6 @@
     "Estado": "Pendiente"
   },
   {
-    "Id": "C2",
-    "PacienteId": "P2",
-    "MedicoId": "M2",
-    "Fecha": "2026-06-11",
-    "Hora": "10:30:00",
-    "Motivo": "Consulta pedi\u00E1trica",
-    "Estado": "Confirmada"
-  },
-  {
     "Id": "C3",
     "PacienteId": "P3",
     "MedicoId": "M3",

@@ -19,6 +19,7 @@
             <th>Especialidad</th>
             <th>Número de licencia</th>
             <th>Detalle</th>
+            <th>Acciones</th>
         </tr>
     </thead>
 
@@ -35,6 +36,16 @@
                     <a href="/Medico/Detalle/@medico.Id" class="btn btn-info">
                         Ver detalle
                     </a>
+                </td>
+                <td>
+                    <a asp-action="Editar" asp-route-id="@medico.Id" class="btn btn-primary btn-sm">
+                        Editar
+                    </a>
+                    <form asp-action="Eliminar" asp-route-id="@medico.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este médico? También se eliminarán sus citas.');">
+                            Eliminar
+                        </button>
+                    </form>
                 </td>
             </tr>
         }
