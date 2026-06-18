@@ -2,113 +2,200 @@
 
 ## Descripción del proyecto
 
-CitasApp es una aplicación web desarrollada con ASP.NET Core MVC que permite gestionar información básica de pacientes, médicos y citas médicas.
+CitasApp es una aplicación web desarrollada con ASP.NET Core MVC que permite gestionar pacientes, médicos y citas médicas.
 
-El sistema permite visualizar listas de pacientes, médicos y citas, consultar detalles individuales y registrar nueva información mediante formularios. Además, la aplicación cuenta con persistencia de datos usando archivos JSON, por lo que la información registrada se mantiene guardada aunque se cierre o reinicie el proyecto.
+El proyecto fue reorganizado desde una estructura MVC tradicional hacia una arquitectura hexagonal separada en cuatro capas: `CitasApp.Domain`, `CitasApp.Application`, `CitasApp.Infrastructure` y `CitasApp.Web`.
+
+La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar, editar y eliminar pacientes, médicos y citas. También mantiene persistencia mediante archivos JSON y agrega repositorios como adaptadores de infraestructura.
 
 ## Funcionalidades principales
 
 * Visualización de pacientes registrados.
 * Visualización del detalle de un paciente.
 * Registro de nuevos pacientes.
+* Edición de pacientes existentes.
+* Eliminación de pacientes.
 * Visualización de médicos disponibles.
 * Visualización del detalle de un médico.
 * Registro de nuevos médicos.
+* Edición de médicos existentes.
+* Eliminación de médicos.
 * Visualización de la agenda completa de citas.
 * Creación de nuevas citas médicas.
+* Edición de citas médicas existentes.
+* Eliminación de citas médicas.
 * Filtrado de citas por paciente.
 * Persistencia de datos mediante archivos JSON.
+* Uso de interfaces como puertos de la aplicación.
+* Uso de repositorios como adaptadores de infraestructura.
 * Navegación mediante navbar para evitar escribir rutas manualmente.
 
-## Tecnologías usadas
+## Arquitectura del proyecto
 
-* C#
-* ASP.NET Core MVC
-* Razor Views
-* HTML
-* CSS
-* Bootstrap
-* JSON
-* Git
-* GitHub
-* Visual Studio
-
-## Estructura del proyecto
+La solución está dividida en cuatro proyectos:
 
 ```txt
 CitasApp
 │
+├── CitasApp.Domain
+│
+├── CitasApp.Application
+│
+├── CitasApp.Infrastructure
+│
+└── CitasApp.Web
+```
+
+## Capas de la arquitectura
+
+### CitasApp.Domain
+
+Contiene los modelos principales del sistema. Esta capa representa el núcleo del dominio y no depende de las demás capas.
+
+```txt
+CitasApp.Domain
+└── Models
+    ├── Paciente.cs
+    ├── Medico.cs
+    └── Cita.cs
+```
+
+### CitasApp.Application
+
+Contiene las interfaces que funcionan como puertos de entrada/salida para la aplicación. Los controladores dependen de estas interfaces, no de clases concretas de infraestructura.
+
+```txt
+CitasApp.Application
+└── Interfaces
+    ├── IRepository.cs
+    ├── IPacienteRepository.cs
+    ├── IMedicoRepository.cs
+    └── ICitaRepository.cs
+```
+
+### CitasApp.Infrastructure
+
+Contiene los adaptadores concretos de persistencia. En esta capa están los repositorios que implementan las interfaces definidas en `CitasApp.Application`.
+
+```txt
+CitasApp.Infrastructure
+└── Repositories
+    ├── JsonRepository.cs
+    ├── JsonPacienteRepository.cs
+    ├── JsonMedicoRepository.cs
+    ├── JsonCitaRepository.cs
+    └── MemoriaPacienteRepository.cs
+```
+
+`JsonPacienteRepository` usa archivos JSON para guardar pacientes.
+
+`MemoriaPacienteRepository` implementa la misma interfaz `IPacienteRepository`, pero guarda los datos en memoria. Esto permite cambiar el adaptador registrado sin modificar el dominio ni los controladores.
+
+### CitasApp.Web
+
+Contiene la aplicación ASP.NET Core MVC: controladores, vistas, archivos estáticos, configuración y archivos JSON de datos.
+
+```txt
+CitasApp.Web
 ├── Controllers
 │   ├── PacienteController.cs
 │   ├── MedicoController.cs
-│   └── CitaController.cs
-│
-├── Models
-│   ├── Paciente.cs
-│   ├── Medico.cs
-│   └── Cita.cs
+│   ├── CitaController.cs
+│   └── HomeController.cs
 │
 ├── Views
 │   ├── Paciente
 │   ├── Medico
 │   ├── Cita
+│   ├── Home
 │   └── Shared
-│
-├── Services
-│   └── JsonFileService.cs
 │
 ├── Data
 │   ├── pacientes.json
 │   ├── medicos.json
 │   └── citas.json
 │
+├── Models
+│   └── ErrorViewModel.cs
+│
 ├── wwwroot
 ├── Program.cs
-└── README.md
+└── appsettings.json
 ```
+
+## Referencias entre proyectos
+
+```txt
+CitasApp.Web → CitasApp.Application
+CitasApp.Web → CitasApp.Infrastructure
+CitasApp.Web → CitasApp.Domain
+
+CitasApp.Infrastructure → CitasApp.Application
+CitasApp.Infrastructure → CitasApp.Domain
+
+CitasApp.Application → CitasApp.Domain
+
+CitasApp.Domain → sin dependencias externas del proyecto
+```
+
+## Cambio de adaptador
+
+En `CitasApp.Web/Program.cs` se registra qué implementación se usará para `IPacienteRepository`.
+
+Por defecto se usa el adaptador JSON:
+
+```csharp
+var usarPacientesEnMemoria = false;
+```
+
+Para probar el segundo adaptador en memoria, se puede cambiar a:
+
+```csharp
+var usarPacientesEnMemoria = true;
+```
+
+Esto cambia la implementación usada por la aplicación sin modificar `CitasApp.Domain` ni los controladores MVC.
 
 ## Persistencia de datos
 
-La aplicación guarda la información en archivos JSON ubicados dentro de la carpeta `Data`.
-
-Los archivos utilizados son:
+La persistencia JSON se guarda en la carpeta `Data` dentro del proyecto web:
 
 ```txt
-Data/pacientes.json
-Data/medicos.json
-Data/citas.json
+CitasApp.Web/Data/pacientes.json
+CitasApp.Web/Data/medicos.json
+CitasApp.Web/Data/citas.json
 ```
 
-La clase `JsonFileService.cs` se encarga de leer y guardar los datos en estos archivos, permitiendo que la información se conserve después de cerrar la aplicación.
+Los repositorios JSON leen y guardan información en esos archivos.
 
 ## Capturas de pantalla de la app corriendo
 
 ### Pantalla de pacientes
 
-![Pantalla de pacientes](wwwroot/img/pacientes.png)
+![Pantalla de pacientes](CitasApp.Web/wwwroot/img/pacientes2.png)
 
 ### Pantalla de médicos
 
-![Pantalla de médicos](wwwroot/img/medicos.png)
+![Pantalla de médicos](CitasApp.Web/wwwroot/img/medicos2.png)
 
 ### Pantalla de citas
 
-![Pantalla de citas](wwwroot/img/citas.png)
+![Pantalla de citas](CitasApp.Web/wwwroot/img/citas2.png)
 
 ### Formulario para crear cita
 
-![Formulario crear cita](wwwroot/img/crear-cita.png)
+![Formulario crear cita](CitasApp.Web/wwwroot/img/crear-cita2.png)
 
 ## Cómo ejecutar el proyecto
 
-1. Abrir el proyecto en Visual Studio.
-2. Ejecutar la aplicación con HTTPS.
-3. Usar la barra de navegación para acceder a:
+Desde la raíz de la solución:
 
-   * Pacientes
-   * Médicos
-   * Citas
+```bash
+dotnet run --project CitasApp.Web
+```
+
+También se puede abrir la solución en Visual Studio y ejecutar el proyecto `CitasApp.Web`.
 
 ## Nota sobre uso de IA
 
-Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código y resolver errores. 
+Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal y resolver errores.

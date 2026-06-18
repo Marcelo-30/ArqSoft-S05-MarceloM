@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "C1",
+    "PacienteId": "P1",
+    "MedicoId": "M1",
+    "Fecha": "2026-06-10",
+    "Hora": "09:00:00",
+    "Motivo": "Dolor en el pecho",
+    "Estado": "Pendiente"
+  },
+  {
+    "Id": "C3",
+    "PacienteId": "P3",
+    "MedicoId": "M3",
+    "Fecha": "2026-06-12",
+    "Hora": "12:00:00",
+    "Motivo": "Revisi\u00F3n de piel",
+    "Estado": "Pendiente"
+  },
+  {
+    "Id": "C4",
+    "PacienteId": "P4",
+    "MedicoId": "M4",
+    "Fecha": "2026-06-13",
+    "Hora": "15:00:00",
+    "Motivo": "Consulta general",
+    "Estado": "Cancelada"
+  },
+  {
+    "Id": "C5",
+    "PacienteId": "P5",
+    "MedicoId": "M3",
+    "Fecha": "2026-01-22",
+    "Hora": "22:20:00",
+    "Motivo": "Cancer ",
+    "Estado": "Confirmada"
+  }
+]

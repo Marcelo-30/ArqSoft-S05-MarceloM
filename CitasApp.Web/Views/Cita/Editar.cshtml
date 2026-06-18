@@ -1,0 +1,48 @@
+@model CitasApp.Domain.Models.Cita
+
+<h1>Editar cita</h1>
+
+<form asp-action="Editar" method="post">
+    <input asp-for="Id" type="hidden" />
+
+    <div class="mb-3">
+        <label class="form-label">Paciente</label>
+        <select asp-for="PacienteId" asp-items="ViewBag.Pacientes" class="form-control">
+            <option value="">Selecciona un paciente</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Médico</label>
+        <select asp-for="MedicoId" asp-items="ViewBag.Medicos" class="form-control">
+            <option value="">Selecciona un médico</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Fecha" class="form-label"></label>
+        <input asp-for="Fecha" type="date" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Hora" class="form-label"></label>
+        <input asp-for="Hora" type="time" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Motivo" class="form-label"></label>
+        <input asp-for="Motivo" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Estado" class="form-label"></label>
+        <select asp-for="Estado" class="form-control">
+            <option value="Pendiente">Pendiente</option>
+            <option value="Confirmada">Confirmada</option>
+            <option value="Cancelada">Cancelada</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>

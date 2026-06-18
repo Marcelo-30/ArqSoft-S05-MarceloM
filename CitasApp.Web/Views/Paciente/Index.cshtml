@@ -1,0 +1,59 @@
+@model List<CitasApp.Domain.Models.Paciente>
+
+<h1>Pacientes registrados</h1>
+
+<div style="margin-bottom: 20px;">
+    <a href="/Paciente" class="btn btn-primary">Pacientes</a>
+    <a href="/Medico" class="btn btn-success">Médicos</a>
+    <a href="/Cita" class="btn btn-warning">Citas</a>
+</div>
+<a href="/Paciente/Crear" class="btn btn-success mb-3">
+    Agregar paciente
+</a>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Detalle</th>
+            <th>Citas</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var paciente in Model)
+        {
+            <tr>
+                <td>@paciente.Id</td>
+                <td>@paciente.Nombre</td>
+                <td>@paciente.Apellido</td>
+                <td>@paciente.Email</td>
+                <td>@paciente.Telefono</td>
+                <td>
+                    <a href="/Paciente/Detalle/@paciente.Id" class="btn btn-info">
+                        Ver detalle
+                    </a>
+                </td>
+                <td>
+                    <a href="/Cita/PorPaciente?pacienteId=@paciente.Id" class="btn btn-secondary">
+                        Ver citas
+                    </a>
+                </td>
+                <td>
+                    <a asp-action="Editar" asp-route-id="@paciente.Id" class="btn btn-primary btn-sm">
+                        Editar
+                    </a>
+                    <form asp-action="Eliminar" asp-route-id="@paciente.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este paciente? También se eliminarán sus citas.');">
+                            Eliminar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

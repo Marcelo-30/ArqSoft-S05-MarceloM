@@ -1,0 +1,30 @@
+[
+  {
+    "Id": "M1",
+    "Nombre": "Roberto",
+    "Apellido": "Hern\u00E1ndez",
+    "Especialidad": "Cardiolog\u00EDa",
+    "NumeroLicencia": "LIC-1001"
+  },
+  {
+    "Id": "M3",
+    "Nombre": "Jorge",
+    "Apellido": "M\u00E9ndez",
+    "Especialidad": "Dermatolog\u00EDa",
+    "NumeroLicencia": "LIC-1003"
+  },
+  {
+    "Id": "M4",
+    "Nombre": "Paola",
+    "Apellido": "S\u00E1nchez",
+    "Especialidad": "Medicina General",
+    "NumeroLicencia": "LIC-1004"
+  },
+  {
+    "Id": "M5",
+    "Nombre": "Armando",
+    "Apellido": "Cen",
+    "Especialidad": "Pediatra",
+    "NumeroLicencia": "5363"
+  }
+]

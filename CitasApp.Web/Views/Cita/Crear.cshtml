@@ -1,0 +1,46 @@
+@model CitasApp.Domain.Models.Cita
+
+<h1>Crear cita</h1>
+
+<form asp-action="Crear" method="post">
+    <div class="mb-3">
+        <label class="form-label">Paciente</label>
+        <select asp-for="PacienteId" asp-items="ViewBag.Pacientes" class="form-control">
+            <option value="">Selecciona un paciente</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Médico</label>
+        <select asp-for="MedicoId" asp-items="ViewBag.Medicos" class="form-control">
+            <option value="">Selecciona un médico</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Fecha</label>
+        <input asp-for="Fecha" type="date" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Hora</label>
+        <input asp-for="Hora" type="time" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Motivo</label>
+        <input asp-for="Motivo" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Estado</label>
+        <select asp-for="Estado" class="form-control">
+            <option value="Pendiente">Pendiente</option>
+            <option value="Confirmada">Confirmada</option>
+            <option value="Cancelada">Cancelada</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar cita</button>
+    <a href="/Cita" class="btn btn-secondary">Cancelar</a>
+</form>

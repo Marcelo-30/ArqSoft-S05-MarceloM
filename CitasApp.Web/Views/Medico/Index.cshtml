@@ -1,0 +1,53 @@
+@model List<CitasApp.Domain.Models.Medico>
+
+<h1>Médicos disponibles</h1>
+
+<div style="margin-bottom: 20px;">
+    <a href="/Paciente" class="btn btn-primary">Pacientes</a>
+    <a href="/Medico" class="btn btn-success">Médicos</a>
+    <a href="/Cita" class="btn btn-warning">Citas</a>
+</div>
+<a href="/Medico/Crear" class="btn btn-success mb-3">
+    Agregar médico
+</a>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Especialidad</th>
+            <th>Número de licencia</th>
+            <th>Detalle</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var medico in Model)
+        {
+            <tr>
+                <td>@medico.Id</td>
+                <td>@medico.Nombre</td>
+                <td>@medico.Apellido</td>
+                <td>@medico.Especialidad</td>
+                <td>@medico.NumeroLicencia</td>
+                <td>
+                    <a href="/Medico/Detalle/@medico.Id" class="btn btn-info">
+                        Ver detalle
+                    </a>
+                </td>
+                <td>
+                    <a asp-action="Editar" asp-route-id="@medico.Id" class="btn btn-primary btn-sm">
+                        Editar
+                    </a>
+                    <form asp-action="Eliminar" asp-route-id="@medico.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este médico? También se eliminarán sus citas.');">
+                            Eliminar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

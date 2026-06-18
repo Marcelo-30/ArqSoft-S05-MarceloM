@@ -1,0 +1,30 @@
+@model CitasApp.Domain.Models.Medico
+
+<h1>Editar médico</h1>
+
+<form asp-action="Editar" method="post">
+    <input asp-for="Id" type="hidden" />
+
+    <div class="mb-3">
+        <label asp-for="Nombre" class="form-label"></label>
+        <input asp-for="Nombre" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Apellido" class="form-label"></label>
+        <input asp-for="Apellido" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Especialidad" class="form-label"></label>
+        <input asp-for="Especialidad" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="NumeroLicencia" class="form-label">Número de licencia</label>
+        <input asp-for="NumeroLicencia" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>
