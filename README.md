@@ -4,9 +4,9 @@
 
 CitasApp es una aplicación web desarrollada con ASP.NET Core MVC que permite gestionar pacientes, médicos y citas médicas.
 
-El proyecto fue reorganizado desde una estructura MVC tradicional hacia una arquitectura hexagonal separada en cuatro capas: `CitasApp.Domain`, `CitasApp.Application`, `CitasApp.Infrastructure` y `CitasApp.Web`.
+El proyecto fue reorganizado desde una estructura MVC tradicional hacia una arquitectura hexagonal separada en cuatro capas principales: `CitasApp.Domain`, `CitasApp.Application`, `CitasApp.Infrastructure` y `CitasApp.Web`.
 
-La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar, editar y eliminar pacientes, médicos y citas. También mantiene persistencia mediante archivos JSON, agrega repositorios como adaptadores de infraestructura y mueve la lógica de uso de la aplicación a servicios en la capa Application.
+La aplicación conserva las funcionalidades principales del proyecto MVC: crear, visualizar, editar y eliminar pacientes, médicos y citas. También mantiene persistencia mediante archivos JSON, agrega repositorios como adaptadores de infraestructura y mueve la lógica de uso de la aplicación a servicios en la capa Application.
 
 ## Funcionalidades principales
 
@@ -29,6 +29,7 @@ La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar,
 * Uso de interfaces en Domain como puertos del dominio.
 * Uso de servicios en Application para coordinar las operaciones de la aplicación.
 * Uso de repositorios como adaptadores de infraestructura.
+* Uso de un segundo adaptador en memoria para pacientes.
 * Navegación mediante navbar para evitar escribir rutas manualmente.
 
 ## Arquitectura del proyecto
@@ -39,11 +40,8 @@ La solución está dividida en cuatro proyectos:
 CitasApp
 │
 ├── CitasApp.Domain
-│
 ├── CitasApp.Application
-│
 ├── CitasApp.Infrastructure
-│
 └── CitasApp.Web
 ```
 
@@ -69,7 +67,7 @@ CitasApp.Domain
 
 ### CitasApp.Application
 
-Contiene los servicios de aplicación. Estos servicios usan las interfaces definidas en `CitasApp.Domain` para coordinar las operaciones de pacientes, médicos y citas sin depender de implementaciones concretas de infraestructura.
+Contiene los servicios de aplicación. Estos servicios usan las interfaces definidas en `CitasApp.Domain` para coordinar las operaciones de pacientes, médicos y citas sin depender directamente de implementaciones concretas de infraestructura.
 
 ```txt
 CitasApp.Application
@@ -95,7 +93,7 @@ CitasApp.Infrastructure
 
 `JsonPacienteRepository` usa archivos JSON para guardar pacientes.
 
-`MemoriaPacienteRepository` implementa la misma interfaz `IPacienteRepository`, pero guarda los datos en memoria. Esto permite cambiar el adaptador registrado sin modificar el dominio ni los controladores.
+`MemoriaPacienteRepository` implementa la misma interfaz `IPacienteRepository`, pero guarda los datos en memoria. Esto permite cambiar el adaptador registrado sin modificar el dominio, los servicios de aplicación ni los controladores.
 
 ### CitasApp.Web
 
@@ -171,27 +169,9 @@ CitasApp.Web/Data/medicos.json
 CitasApp.Web/Data/citas.json
 ```
 
-Los repositorios JSON leen y guardan información en esos archivos.
+Los repositorios JSON leen y guardan información en esos archivos. Esto permite conservar los datos después de cerrar o reiniciar la aplicación.
 
-## Capturas de pantalla de la app corriendo
-
-### Pantalla de pacientes
-
-![Pantalla de pacientes](CitasApp.Web/wwwroot/img/pacientes2.png)
-
-### Pantalla de médicos
-
-![Pantalla de médicos](CitasApp.Web/wwwroot/img/medicos2.png)
-
-### Pantalla de citas
-
-![Pantalla de citas](CitasApp.Web/wwwroot/img/citas2.png)
-
-### Formulario para crear cita
-
-![Formulario crear cita](CitasApp.Web/wwwroot/img/crear-cita2.png)
-
-## Cómo ejecutar el proyecto
+## Cómo ejecutar el proyecto MVC
 
 Desde la raíz de la solución:
 
@@ -199,8 +179,22 @@ Desde la raíz de la solución:
 dotnet run --project CitasApp.Web
 ```
 
-También se puede abrir la solución en Visual Studio y ejecutar el proyecto `CitasApp.Web`.
+También se puede abrir la solución en Visual Studio y establecer `CitasApp.Web` como proyecto de inicio.
+
+## Tecnologías usadas
+
+* C#
+* ASP.NET Core MVC
+* Razor Views
+* HTML
+* CSS
+* Bootstrap
+* JSON
+* Git
+* GitHub
+* Visual Studio
 
 ## Nota sobre uso de IA
 
-Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal y resolver errores.
+Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal, agregar interfaces, crear servicios de aplicación, crear repositorios y resolver errores.
+
