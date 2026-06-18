@@ -1,4 +1,4 @@
-using CitasApp.Application.Interfaces;
+using CitasApp.Domain.Interfaces;
 using CitasApp.Domain.Models;
 
 namespace CitasApp.Infrastructure.Repositories

@@ -1,4 +1,4 @@
-namespace CitasApp.Application.Interfaces
+namespace CitasApp.Domain.Interfaces
 {
     public interface IRepository<T>
     {

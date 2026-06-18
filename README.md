@@ -6,7 +6,7 @@ CitasApp es una aplicación web desarrollada con ASP.NET Core MVC que permite ge
 
 El proyecto fue reorganizado desde una estructura MVC tradicional hacia una arquitectura hexagonal separada en cuatro capas: `CitasApp.Domain`, `CitasApp.Application`, `CitasApp.Infrastructure` y `CitasApp.Web`.
 
-La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar, editar y eliminar pacientes, médicos y citas. También mantiene persistencia mediante archivos JSON y agrega repositorios como adaptadores de infraestructura.
+La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar, editar y eliminar pacientes, médicos y citas. También mantiene persistencia mediante archivos JSON, agrega repositorios como adaptadores de infraestructura y mueve la lógica de uso de la aplicación a servicios en la capa Application.
 
 ## Funcionalidades principales
 
@@ -26,7 +26,8 @@ La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar,
 * Eliminación de citas médicas.
 * Filtrado de citas por paciente.
 * Persistencia de datos mediante archivos JSON.
-* Uso de interfaces como puertos de la aplicación.
+* Uso de interfaces en Domain como puertos del dominio.
+* Uso de servicios en Application para coordinar las operaciones de la aplicación.
 * Uso de repositorios como adaptadores de infraestructura.
 * Navegación mediante navbar para evitar escribir rutas manualmente.
 
@@ -50,22 +51,15 @@ CitasApp
 
 ### CitasApp.Domain
 
-Contiene los modelos principales del sistema. Esta capa representa el núcleo del dominio y no depende de las demás capas.
+Contiene los modelos principales del sistema y las interfaces de repositorio. Esta capa representa el núcleo del dominio y no depende de las demás capas.
 
 ```txt
 CitasApp.Domain
-└── Models
-    ├── Paciente.cs
-    ├── Medico.cs
-    └── Cita.cs
-```
-
-### CitasApp.Application
-
-Contiene las interfaces que funcionan como puertos de entrada/salida para la aplicación. Los controladores dependen de estas interfaces, no de clases concretas de infraestructura.
-
-```txt
-CitasApp.Application
+├── Models
+│   ├── Paciente.cs
+│   ├── Medico.cs
+│   └── Cita.cs
+│
 └── Interfaces
     ├── IRepository.cs
     ├── IPacienteRepository.cs
@@ -73,9 +67,21 @@ CitasApp.Application
     └── ICitaRepository.cs
 ```
 
+### CitasApp.Application
+
+Contiene los servicios de aplicación. Estos servicios usan las interfaces definidas en `CitasApp.Domain` para coordinar las operaciones de pacientes, médicos y citas sin depender de implementaciones concretas de infraestructura.
+
+```txt
+CitasApp.Application
+└── Services
+    ├── PacienteService.cs
+    ├── MedicoService.cs
+    └── CitaService.cs
+```
+
 ### CitasApp.Infrastructure
 
-Contiene los adaptadores concretos de persistencia. En esta capa están los repositorios que implementan las interfaces definidas en `CitasApp.Application`.
+Contiene los adaptadores concretos de persistencia. En esta capa están los repositorios que implementan las interfaces definidas en `CitasApp.Domain`.
 
 ```txt
 CitasApp.Infrastructure
@@ -130,7 +136,6 @@ CitasApp.Web → CitasApp.Application
 CitasApp.Web → CitasApp.Infrastructure
 CitasApp.Web → CitasApp.Domain
 
-CitasApp.Infrastructure → CitasApp.Application
 CitasApp.Infrastructure → CitasApp.Domain
 
 CitasApp.Application → CitasApp.Domain
@@ -154,7 +159,7 @@ Para probar el segundo adaptador en memoria, se puede cambiar a:
 var usarPacientesEnMemoria = true;
 ```
 
-Esto cambia la implementación usada por la aplicación sin modificar `CitasApp.Domain` ni los controladores MVC.
+Esto cambia la implementación usada por la aplicación sin modificar `CitasApp.Domain`, `CitasApp.Application` ni los controladores MVC.
 
 ## Persistencia de datos
 

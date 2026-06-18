@@ -1,32 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
-using CitasApp.Application.Interfaces;
+using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
 
 namespace CitasApp.Web.Controllers
 {
     public class PacienteController : Controller
     {
-        private readonly IPacienteRepository _pacienteRepository;
-        private readonly ICitaRepository _citaRepository;
+        private readonly PacienteService _pacienteService;
 
-        public PacienteController(
-            IPacienteRepository pacienteRepository,
-            ICitaRepository citaRepository)
+        public PacienteController(PacienteService pacienteService)
         {
-            _pacienteRepository = pacienteRepository;
-            _citaRepository = citaRepository;
+            _pacienteService = pacienteService;
         }
 
         public IActionResult Index()
         {
-            var pacientes = _pacienteRepository.Leer();
+            var pacientes = _pacienteService.ObtenerTodos();
             return View(pacientes);
         }
 
         public IActionResult Detalle(string id)
         {
-            var pacientes = _pacienteRepository.Leer();
-            var paciente = pacientes.FirstOrDefault(p => p.Id == id);
+            var paciente = _pacienteService.ObtenerPorId(id);
 
             if (paciente == null)
             {
@@ -46,21 +41,14 @@ namespace CitasApp.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Crear(Paciente paciente)
         {
-            var pacientes = _pacienteRepository.Leer();
-
-            paciente.Id = GenerarSiguienteId(pacientes);
-            pacientes.Add(paciente);
-
-            _pacienteRepository.Guardar(pacientes);
-
+            _pacienteService.Crear(paciente);
             return RedirectToAction("Index");
         }
 
         [HttpGet]
         public IActionResult Editar(string id)
         {
-            var pacientes = _pacienteRepository.Leer();
-            var paciente = pacientes.FirstOrDefault(p => p.Id == id);
+            var paciente = _pacienteService.ObtenerPorId(id);
 
             if (paciente == null)
             {
@@ -74,20 +62,12 @@ namespace CitasApp.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Editar(Paciente paciente)
         {
-            var pacientes = _pacienteRepository.Leer();
-            var pacienteExistente = pacientes.FirstOrDefault(p => p.Id == paciente.Id);
+            var actualizado = _pacienteService.Actualizar(paciente);
 
-            if (pacienteExistente == null)
+            if (!actualizado)
             {
                 return NotFound();
             }
-
-            pacienteExistente.Nombre = paciente.Nombre;
-            pacienteExistente.Apellido = paciente.Apellido;
-            pacienteExistente.Email = paciente.Email;
-            pacienteExistente.Telefono = paciente.Telefono;
-
-            _pacienteRepository.Guardar(pacientes);
 
             return RedirectToAction("Index");
         }
@@ -96,37 +76,14 @@ namespace CitasApp.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Eliminar(string id)
         {
-            var pacientes = _pacienteRepository.Leer();
-            var paciente = pacientes.FirstOrDefault(p => p.Id == id);
+            var eliminado = _pacienteService.Eliminar(id);
 
-            if (paciente == null)
+            if (!eliminado)
             {
                 return NotFound();
             }
 
-            pacientes.Remove(paciente);
-            _pacienteRepository.Guardar(pacientes);
-
-            var citas = _citaRepository.Leer();
-            var citasActualizadas = citas
-                .Where(c => c.PacienteId != id)
-                .ToList();
-
-            _citaRepository.Guardar(citasActualizadas);
-
             return RedirectToAction("Index");
-        }
-
-        private static string GenerarSiguienteId(List<Paciente> pacientes)
-        {
-            var ultimoNumero = pacientes
-                .Select(p => p.Id)
-                .Where(id => !string.IsNullOrWhiteSpace(id) && id.StartsWith("P"))
-                .Select(id => int.TryParse(id[1..], out var numero) ? numero : 0)
-                .DefaultIfEmpty(0)
-                .Max();
-
-            return $"P{ultimoNumero + 1}";
         }
     }
 }

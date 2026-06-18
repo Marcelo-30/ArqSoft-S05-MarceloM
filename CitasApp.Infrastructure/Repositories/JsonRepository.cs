@@ -1,5 +1,5 @@
 using System.Text.Json;
-using CitasApp.Application.Interfaces;
+using CitasApp.Domain.Interfaces;
 
 namespace CitasApp.Infrastructure.Repositories
 {

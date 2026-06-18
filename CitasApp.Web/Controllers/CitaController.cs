@@ -1,36 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using CitasApp.Application.Interfaces;
+using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
 
 namespace CitasApp.Web.Controllers
 {
     public class CitaController : Controller
     {
-        private readonly ICitaRepository _citaRepository;
-        private readonly IPacienteRepository _pacienteRepository;
-        private readonly IMedicoRepository _medicoRepository;
+        private readonly CitaService _citaService;
+        private readonly PacienteService _pacienteService;
+        private readonly MedicoService _medicoService;
 
         public CitaController(
-            ICitaRepository citaRepository,
-            IPacienteRepository pacienteRepository,
-            IMedicoRepository medicoRepository)
+            CitaService citaService,
+            PacienteService pacienteService,
+            MedicoService medicoService)
         {
-            _citaRepository = citaRepository;
-            _pacienteRepository = pacienteRepository;
-            _medicoRepository = medicoRepository;
+            _citaService = citaService;
+            _pacienteService = pacienteService;
+            _medicoService = medicoService;
         }
 
         public IActionResult Index()
         {
-            var citas = _citaRepository.Leer();
+            var citas = _citaService.ObtenerTodas();
             return View(citas);
         }
 
         public IActionResult Detalle(string id)
         {
-            var citas = _citaRepository.Leer();
-            var cita = citas.FirstOrDefault(c => c.Id == id);
+            var cita = _citaService.ObtenerPorId(id);
 
             if (cita == null)
             {
@@ -42,12 +41,7 @@ namespace CitasApp.Web.Controllers
 
         public IActionResult PorPaciente(string pacienteId)
         {
-            var citas = _citaRepository.Leer();
-
-            var citasPaciente = citas
-                .Where(c => c.PacienteId == pacienteId)
-                .ToList();
-
+            var citasPaciente = _citaService.ObtenerPorPaciente(pacienteId);
             return View(citasPaciente);
         }
 
@@ -62,27 +56,14 @@ namespace CitasApp.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Crear(Cita cita)
         {
-            var citas = _citaRepository.Leer();
-
-            cita.Id = GenerarSiguienteId(citas);
-
-            if (string.IsNullOrWhiteSpace(cita.Estado))
-            {
-                cita.Estado = "Pendiente";
-            }
-
-            citas.Add(cita);
-
-            _citaRepository.Guardar(citas);
-
+            _citaService.Crear(cita);
             return RedirectToAction("Index");
         }
 
         [HttpGet]
         public IActionResult Editar(string id)
         {
-            var citas = _citaRepository.Leer();
-            var cita = citas.FirstOrDefault(c => c.Id == id);
+            var cita = _citaService.ObtenerPorId(id);
 
             if (cita == null)
             {
@@ -97,24 +78,12 @@ namespace CitasApp.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Editar(Cita cita)
         {
-            var citas = _citaRepository.Leer();
-            var citaExistente = citas.FirstOrDefault(c => c.Id == cita.Id);
+            var actualizado = _citaService.Actualizar(cita);
 
-            if (citaExistente == null)
+            if (!actualizado)
             {
                 return NotFound();
             }
-
-            citaExistente.PacienteId = cita.PacienteId;
-            citaExistente.MedicoId = cita.MedicoId;
-            citaExistente.Fecha = cita.Fecha;
-            citaExistente.Hora = cita.Hora;
-            citaExistente.Motivo = cita.Motivo;
-            citaExistente.Estado = string.IsNullOrWhiteSpace(cita.Estado)
-                ? "Pendiente"
-                : cita.Estado;
-
-            _citaRepository.Guardar(citas);
 
             return RedirectToAction("Index");
         }
@@ -123,24 +92,20 @@ namespace CitasApp.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Eliminar(string id)
         {
-            var citas = _citaRepository.Leer();
-            var cita = citas.FirstOrDefault(c => c.Id == id);
+            var eliminado = _citaService.Eliminar(id);
 
-            if (cita == null)
+            if (!eliminado)
             {
                 return NotFound();
             }
-
-            citas.Remove(cita);
-            _citaRepository.Guardar(citas);
 
             return RedirectToAction("Index");
         }
 
         private void CargarListas(string? pacienteSeleccionado = null, string? medicoSeleccionado = null)
         {
-            var pacientes = _pacienteRepository.Leer();
-            var medicos = _medicoRepository.Leer();
+            var pacientes = _pacienteService.ObtenerTodos();
+            var medicos = _medicoService.ObtenerTodos();
 
             ViewBag.Pacientes = new SelectList(
                 pacientes,
@@ -155,18 +120,6 @@ namespace CitasApp.Web.Controllers
                 "Nombre",
                 medicoSeleccionado
             );
-        }
-
-        private static string GenerarSiguienteId(List<Cita> citas)
-        {
-            var ultimoNumero = citas
-                .Select(c => c.Id)
-                .Where(id => !string.IsNullOrWhiteSpace(id) && id.StartsWith("C"))
-                .Select(id => int.TryParse(id[1..], out var numero) ? numero : 0)
-                .DefaultIfEmpty(0)
-                .Max();
-
-            return $"C{ultimoNumero + 1}";
         }
     }
 }

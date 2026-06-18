@@ -1,4 +1,5 @@
-using CitasApp.Application.Interfaces;
+using CitasApp.Application.Services;
+using CitasApp.Domain.Interfaces;
 using CitasApp.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,10 @@ builder.Services.AddSingleton<ICitaRepository>(serviceProvider =>
     var ruta = Path.Combine(env.ContentRootPath, "Data", "citas.json");
     return new JsonCitaRepository(ruta);
 });
+
+builder.Services.AddScoped<PacienteService>();
+builder.Services.AddScoped<MedicoService>();
+builder.Services.AddScoped<CitaService>();
 
 var app = builder.Build();
 

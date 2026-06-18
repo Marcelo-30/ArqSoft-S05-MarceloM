@@ -1,6 +1,6 @@
 using CitasApp.Domain.Models;
 
-namespace CitasApp.Application.Interfaces
+namespace CitasApp.Domain.Interfaces
 {
     public interface ICitaRepository : IRepository<Cita>
     {
