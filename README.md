@@ -33,7 +33,7 @@ La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar,
 
 ## Arquitectura del proyecto
 
-La solución está dividida en cuatro proyectos:
+La solución está dividida en cinco proyectos:
 
 ```txt
 CitasApp
@@ -44,7 +44,9 @@ CitasApp
 │
 ├── CitasApp.Infrastructure
 │
-└── CitasApp.Web
+├── CitasApp.Web
+│
+└── CitasApp.Api
 ```
 
 ## Capas de la arquitectura
@@ -129,12 +131,68 @@ CitasApp.Web
 └── appsettings.json
 ```
 
+
+### CitasApp.Api
+
+Contiene una API REST como adaptador de entrada adicional. Esta capa permite que otros clientes, como una aplicación móvil, consuman datos de la agenda médica sin depender de las vistas MVC.
+
+```txt
+CitasApp.Api
+├── Controllers
+│   ├── AgendaMedicoController.cs
+│   └── RecordatoriosController.cs
+│
+├── Dtos
+│   ├── AgendaMedicoDto.cs
+│   ├── RecordatorioWhatsappDto.cs
+│   └── EnviarWhatsappResponseDto.cs
+│
+├── Program.cs
+└── appsettings.json
+```
+
+Endpoints principales de agenda médica:
+
+```txt
+GET /api/medicos/{medicoId}/agenda
+GET /api/medicos/{medicoId}/agenda/hoy
+GET /api/medicos/{medicoId}/agenda/fecha/{fecha}
+```
+
+Ejemplos:
+
+```txt
+GET /api/medicos/M1/agenda
+GET /api/medicos/M1/agenda/hoy
+GET /api/medicos/M1/agenda/fecha/2026-06-10
+```
+
+Endpoints principales de recordatorios por WhatsApp:
+
+```txt
+GET /api/recordatorios/pendientes?dias=1
+POST /api/recordatorios/whatsapp/{citaId}
+```
+
+Ejemplos:
+
+```txt
+GET /api/recordatorios/pendientes?dias=7
+POST /api/recordatorios/whatsapp/C1
+```
+
+El envío por WhatsApp queda simulado. El endpoint genera el mensaje y una URL de WhatsApp (`wa.me`). Para envío real se debe integrar un proveedor externo como Meta WhatsApp Cloud API o Twilio.
+
 ## Referencias entre proyectos
 
 ```txt
 CitasApp.Web → CitasApp.Application
 CitasApp.Web → CitasApp.Infrastructure
 CitasApp.Web → CitasApp.Domain
+
+CitasApp.Api → CitasApp.Application
+CitasApp.Api → CitasApp.Infrastructure
+CitasApp.Api → CitasApp.Domain
 
 CitasApp.Infrastructure → CitasApp.Domain
 
@@ -171,7 +229,7 @@ CitasApp.Web/Data/medicos.json
 CitasApp.Web/Data/citas.json
 ```
 
-Los repositorios JSON leen y guardan información en esos archivos.
+Los repositorios JSON leen y guardan información en esos archivos. La API también usa esos archivos para consultar la misma información que administra la aplicación MVC.
 
 ## Capturas de pantalla de la app corriendo
 
@@ -191,7 +249,7 @@ Los repositorios JSON leen y guardan información en esos archivos.
 
 ![Formulario crear cita](CitasApp.Web/wwwroot/img/crear-cita2.png)
 
-## Cómo ejecutar el proyecto
+## Cómo ejecutar el proyecto MVC
 
 Desde la raíz de la solución:
 
@@ -201,6 +259,16 @@ dotnet run --project CitasApp.Web
 
 También se puede abrir la solución en Visual Studio y ejecutar el proyecto `CitasApp.Web`.
 
+## Cómo ejecutar la API REST
+
+Desde la raíz de la solución:
+
+```bash
+dotnet run --project CitasApp.Api
+```
+
+La API usa los puertos y servicios existentes de la arquitectura hexagonal, pero expone respuestas JSON para clientes externos.
+
 ## Nota sobre uso de IA
 
-Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal y resolver errores.
+Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal, agregar una API REST y resolver errores.
