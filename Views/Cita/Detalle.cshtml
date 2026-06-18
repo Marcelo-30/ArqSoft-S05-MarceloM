@@ -1,0 +1,32 @@
+﻿@model CitasApp.Models.Cita
+
+<h2>Detalle Cita</h2>
+
+<div>
+    <strong>Id:</strong> @Model.Id
+</div>
+
+<div>
+    <strong>Paciente:</strong> @Model.PacienteId
+</div>
+
+<div>
+    <strong>Médico:</strong> @Model.MedicoId
+</div>
+
+<div>
+    <strong>Fecha:</strong> @Model.Fecha
+</div>
+
+<div>
+    <strong>Estado:</strong> @Model.Estado
+</div>
+
+<div>
+    <strong>Motivo:</strong> 
+    @Model.Motivo
+</div>
+
+<p>
+    <a asp-action="Index">Volver</a>
+</p>
