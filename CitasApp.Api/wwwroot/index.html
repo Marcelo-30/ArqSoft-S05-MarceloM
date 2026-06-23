@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CitasApp API - Inicio</title>
+    <title>CitasApp - Inicio</title>
     <style>
         body {
             margin: 0;
@@ -77,12 +77,27 @@
         .boton.verde {
             background: #16a34a;
         }
+
+        .nota {
+            margin-top: 28px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #e0ecff;
+            color: #1e3a8a;
+            line-height: 1.5;
+        }
+
+        code {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
     <main class="contenedor">
         <section class="hero">
-            <h1>CitasApp API</h1>
+            <h1>CitasApp</h1>
             <p>Selecciona el módulo que quieres abrir.</p>
         </section>
 
@@ -90,16 +105,26 @@
             <article class="card">
                 <div class="icono">📅</div>
                 <h2>Agenda de citas</h2>
-                <p>Consulta la agenda de citas por médico usando los endpoints que ya tienes en la API.</p>
-                <a class="boton" href="agenda.html">Entrar a la agenda</a>
+                <p>
+                    Abre la agenda completa que ya tenías, con pacientes, médicos y citas para crear, editar, eliminar y consultar.
+                </p>
+                <a class="boton" href="http://localhost:5261/Cita">Entrar a la agenda completa</a>
             </article>
 
             <article class="card">
                 <div class="icono">🧮</div>
                 <h2>Calculadora</h2>
-                <p>Abre una calculadora básica para sumar, restar, multiplicar y dividir.</p>
+                <p>
+                    Abre una calculadora básica para sumar, restar, multiplicar y dividir desde la API.
+                </p>
                 <a class="boton verde" href="calculadora.html">Abrir calculadora</a>
             </article>
+        </section>
+
+        <section class="nota">
+            <strong>Importante:</strong> la agenda completa vive en el proyecto <code>CitasApp.Web</code>.
+            Para que el botón funcione, inicia también <code>CitasApp.Web</code>, o usa el perfil de Visual Studio que arranca
+            <code>CitasApp.Api</code> y <code>CitasApp.Web</code> al mismo tiempo.
         </section>
     </main>
 </body>

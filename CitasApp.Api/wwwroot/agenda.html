@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Agenda de citas</title>
+    <title>Agenda completa de citas</title>
     <style>
         body {
             margin: 0;
@@ -13,212 +13,73 @@
         }
 
         .contenedor {
-            max-width: 1000px;
+            max-width: 760px;
             margin: 0 auto;
-            padding: 42px 20px;
+            padding: 54px 20px;
         }
 
         .card {
             background: white;
             border-radius: 18px;
-            padding: 24px;
+            padding: 30px;
             box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
-            margin-bottom: 24px;
         }
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
+        h1 {
+            margin-top: 0;
         }
 
-        .formulario {
-            display: grid;
-            grid-template-columns: 1fr auto;
+        p {
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .botones {
+            display: flex;
             gap: 12px;
-            align-items: end;
+            flex-wrap: wrap;
+            margin-top: 22px;
         }
 
-        input, button {
-            box-sizing: border-box;
-            padding: 12px;
+        .boton {
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
             border-radius: 10px;
-            font-size: 16px;
-        }
-
-        input {
-            width: 100%;
-            border: 1px solid #cbd5e1;
-        }
-
-        button {
-            border: none;
+            padding: 12px 16px;
             background: #2563eb;
             color: white;
             font-weight: bold;
-            cursor: pointer;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
+        .boton.secundario {
+            background: #475569;
         }
 
-        th, td {
-            padding: 12px;
-            border-bottom: 1px solid #e2e8f0;
-            text-align: left;
-        }
-
-        th {
-            background: #e0ecff;
-        }
-
-        .mensaje {
-            margin-top: 14px;
-            padding: 12px;
-            border-radius: 10px;
-            display: none;
-        }
-
-        .info {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .volver {
-            display: inline-block;
-            margin-top: 18px;
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        @media (max-width: 640px) {
-            .formulario {
-                grid-template-columns: 1fr;
-            }
+        code {
+            background: #eef2ff;
+            padding: 2px 6px;
+            border-radius: 6px;
         }
     </style>
 </head>
 <body>
     <main class="contenedor">
-        <h1>Agenda de citas</h1>
-
         <section class="card">
+            <h1>Agenda completa de citas</h1>
             <p>
-                Escribe el Id del médico para consultar su agenda usando el endpoint existente:
-                <strong>/api/medicos/{medicoId}/agenda</strong>.
+                Esta página del API ya no se usa como agenda principal, porque solo permitía consultar citas por Id de médico.
             </p>
             <p>
-                Ejemplos con los datos actuales: <strong>M1</strong>, <strong>M3</strong>, <strong>M4</strong>, <strong>M5</strong>.
+                La agenda completa que ya tenías está en <code>CitasApp.Web</code> y permite agregar, editar, eliminar y consultar
+                pacientes, médicos y citas.
             </p>
 
-            <div class="formulario">
-                <div>
-                    <label for="medicoId">Id del médico</label>
-                    <input id="medicoId" value="M1" />
-                </div>
-                <button type="button" onclick="cargarAgenda()">Ver agenda</button>
+            <div class="botones">
+                <a class="boton" href="http://localhost:5261/Cita">Abrir agenda completa</a>
+                <a class="boton secundario" href="index.html">Volver al inicio del API</a>
             </div>
-
-            <div id="mensaje" class="mensaje"></div>
         </section>
-
-        <section class="card" id="tablaContenedor" style="display:none;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Cita</th>
-                        <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>Paciente</th>
-                        <th>Teléfono</th>
-                        <th>Motivo</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody id="agendaBody"></tbody>
-            </table>
-        </section>
-
-        <a class="volver" href="index.html">← Volver al inicio</a>
     </main>
-
-    <script>
-        async function cargarAgenda() {
-            const medicoId = document.getElementById('medicoId').value.trim();
-            const mensaje = document.getElementById('mensaje');
-            const tablaContenedor = document.getElementById('tablaContenedor');
-            const agendaBody = document.getElementById('agendaBody');
-
-            mensaje.style.display = 'none';
-            mensaje.className = 'mensaje';
-            mensaje.textContent = '';
-            tablaContenedor.style.display = 'none';
-            agendaBody.innerHTML = '';
-
-            if (!medicoId) {
-                mostrarMensaje('Escribe el Id del médico.', true);
-                return;
-            }
-
-            try {
-                const respuesta = await fetch(`/api/medicos/${encodeURIComponent(medicoId)}/agenda`);
-                const datos = await respuesta.json();
-
-                if (!respuesta.ok) {
-                    mostrarMensaje(datos.mensaje || 'No se pudo consultar la agenda.', true);
-                    return;
-                }
-
-                if (!Array.isArray(datos) || datos.length === 0) {
-                    mostrarMensaje('No hay citas registradas para este médico.', false);
-                    return;
-                }
-
-                datos.forEach(cita => {
-                    const fila = document.createElement('tr');
-                    fila.innerHTML = `
-                        <td>${cita.citaId ?? ''}</td>
-                        <td>${cita.fecha ?? ''}</td>
-                        <td>${formatearHora(cita.hora)}</td>
-                        <td>${cita.pacienteNombre ?? ''}</td>
-                        <td>${cita.pacienteTelefono ?? ''}</td>
-                        <td>${cita.motivo ?? ''}</td>
-                        <td>${cita.estado ?? ''}</td>
-                    `;
-                    agendaBody.appendChild(fila);
-                });
-
-                tablaContenedor.style.display = 'block';
-            } catch (error) {
-                mostrarMensaje('Ocurrió un error al consultar la API.', true);
-            }
-        }
-
-        function mostrarMensaje(texto, esError) {
-            const mensaje = document.getElementById('mensaje');
-            mensaje.textContent = texto;
-            mensaje.className = esError ? 'mensaje error' : 'mensaje info';
-            mensaje.style.display = 'block';
-        }
-
-        function formatearHora(hora) {
-            if (!hora) {
-                return '';
-            }
-
-            return hora.length >= 5 ? hora.substring(0, 5) : hora;
-        }
-    </script>
 </body>
 </html>
