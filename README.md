@@ -2,11 +2,11 @@
 
 ## Descripción del proyecto
 
-CitasApp es una aplicación web desarrollada con ASP.NET Core MVC que permite gestionar pacientes, médicos y citas médicas.
+CitasApp es una aplicación desarrollada con ASP.NET Core que permite gestionar pacientes, médicos y citas médicas.
 
-El proyecto fue reorganizado desde una estructura MVC tradicional hacia una arquitectura hexagonal separada en cuatro capas: `CitasApp.Domain`, `CitasApp.Application`, `CitasApp.Infrastructure` y `CitasApp.Web`.
+El proyecto fue reorganizado desde una estructura MVC tradicional hacia una arquitectura hexagonal. En esta rama se agrega una nueva capa llamada `CitasApp.Api`, que funciona como una API REST para permitir que clientes externos consuman información del sistema.
 
-La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar, editar y eliminar pacientes, médicos y citas. También mantiene persistencia mediante archivos JSON, agrega repositorios como adaptadores de infraestructura y mueve la lógica de uso de la aplicación a servicios en la capa Application.
+La aplicación conserva la interfaz web MVC mediante `CitasApp.Web`, pero además expone endpoints REST para que los médicos puedan consultar su agenda desde un celular y para preparar recordatorios de citas por WhatsApp para los pacientes.
 
 ## Funcionalidades principales
 
@@ -29,7 +29,11 @@ La aplicación conserva las funcionalidades del proyecto MVC: crear, visualizar,
 * Uso de interfaces en Domain como puertos del dominio.
 * Uso de servicios en Application para coordinar las operaciones de la aplicación.
 * Uso de repositorios como adaptadores de infraestructura.
-* Navegación mediante navbar para evitar escribir rutas manualmente.
+* Aplicación MVC en `CitasApp.Web`.
+* API REST en `CitasApp.Api`.
+* Consulta de agenda médica mediante endpoints HTTP.
+* Consulta de recordatorios pendientes.
+* Generación simulada de recordatorios por WhatsApp.
 
 ## Arquitectura del proyecto
 
@@ -39,13 +43,9 @@ La solución está dividida en cinco proyectos:
 CitasApp
 │
 ├── CitasApp.Domain
-│
 ├── CitasApp.Application
-│
 ├── CitasApp.Infrastructure
-│
 ├── CitasApp.Web
-│
 └── CitasApp.Api
 ```
 
@@ -71,7 +71,7 @@ CitasApp.Domain
 
 ### CitasApp.Application
 
-Contiene los servicios de aplicación. Estos servicios usan las interfaces definidas en `CitasApp.Domain` para coordinar las operaciones de pacientes, médicos y citas sin depender de implementaciones concretas de infraestructura.
+Contiene los servicios de aplicación. Estos servicios usan las interfaces definidas en `CitasApp.Domain` para coordinar las operaciones de pacientes, médicos y citas sin depender directamente de implementaciones concretas de infraestructura.
 
 ```txt
 CitasApp.Application
@@ -97,7 +97,7 @@ CitasApp.Infrastructure
 
 `JsonPacienteRepository` usa archivos JSON para guardar pacientes.
 
-`MemoriaPacienteRepository` implementa la misma interfaz `IPacienteRepository`, pero guarda los datos en memoria. Esto permite cambiar el adaptador registrado sin modificar el dominio ni los controladores.
+`MemoriaPacienteRepository` implementa la misma interfaz `IPacienteRepository`, pero guarda los datos en memoria. Esto permite cambiar el adaptador registrado sin modificar el dominio, los servicios de aplicación ni los controladores.
 
 ### CitasApp.Web
 
@@ -131,10 +131,9 @@ CitasApp.Web
 └── appsettings.json
 ```
 
-
 ### CitasApp.Api
 
-Contiene una API REST como adaptador de entrada adicional. Esta capa permite que otros clientes, como una aplicación móvil, consuman datos de la agenda médica sin depender de las vistas MVC.
+Contiene una API REST como adaptador de entrada adicional. Esta capa permite que otros clientes, como una aplicación móvil o un navegador desde celular, consuman datos de la agenda médica sin depender de las vistas MVC.
 
 ```txt
 CitasApp.Api
@@ -148,10 +147,13 @@ CitasApp.Api
 │   └── EnviarWhatsappResponseDto.cs
 │
 ├── Program.cs
-└── appsettings.json
+├── appsettings.json
+└── CitasApp.Api.csproj
 ```
 
-Endpoints principales de agenda médica:
+## Endpoints de la API
+
+### Agenda médica
 
 ```txt
 GET /api/medicos/{medicoId}/agenda
@@ -167,7 +169,9 @@ GET /api/medicos/M1/agenda/hoy
 GET /api/medicos/M1/agenda/fecha/2026-06-10
 ```
 
-Endpoints principales de recordatorios por WhatsApp:
+Estos endpoints permiten consultar la agenda de un médico por su identificador.
+
+### Recordatorios por WhatsApp
 
 ```txt
 GET /api/recordatorios/pendientes?dias=1
@@ -181,7 +185,7 @@ GET /api/recordatorios/pendientes?dias=7
 POST /api/recordatorios/whatsapp/C1
 ```
 
-El envío por WhatsApp queda simulado. El endpoint genera el mensaje y una URL de WhatsApp (`wa.me`). Para envío real se debe integrar un proveedor externo como Meta WhatsApp Cloud API o Twilio.
+El envío por WhatsApp queda simulado. El endpoint genera el mensaje y una URL de WhatsApp (`wa.me`). Para un envío real se debe integrar un proveedor externo como Meta WhatsApp Cloud API o Twilio.
 
 ## Referencias entre proyectos
 
@@ -201,24 +205,6 @@ CitasApp.Application → CitasApp.Domain
 CitasApp.Domain → sin dependencias externas del proyecto
 ```
 
-## Cambio de adaptador
-
-En `CitasApp.Web/Program.cs` se registra qué implementación se usará para `IPacienteRepository`.
-
-Por defecto se usa el adaptador JSON:
-
-```csharp
-var usarPacientesEnMemoria = false;
-```
-
-Para probar el segundo adaptador en memoria, se puede cambiar a:
-
-```csharp
-var usarPacientesEnMemoria = true;
-```
-
-Esto cambia la implementación usada por la aplicación sin modificar `CitasApp.Domain`, `CitasApp.Application` ni los controladores MVC.
-
 ## Persistencia de datos
 
 La persistencia JSON se guarda en la carpeta `Data` dentro del proyecto web:
@@ -229,25 +215,7 @@ CitasApp.Web/Data/medicos.json
 CitasApp.Web/Data/citas.json
 ```
 
-Los repositorios JSON leen y guardan información en esos archivos. La API también usa esos archivos para consultar la misma información que administra la aplicación MVC.
-
-## Capturas de pantalla de la app corriendo
-
-### Pantalla de pacientes
-
-![Pantalla de pacientes](CitasApp.Web/wwwroot/img/pacientes2.png)
-
-### Pantalla de médicos
-
-![Pantalla de médicos](CitasApp.Web/wwwroot/img/medicos2.png)
-
-### Pantalla de citas
-
-![Pantalla de citas](CitasApp.Web/wwwroot/img/citas2.png)
-
-### Formulario para crear cita
-
-![Formulario crear cita](CitasApp.Web/wwwroot/img/crear-cita2.png)
+Los repositorios JSON leen y guardan información en esos archivos. La API utiliza la misma información para consultar agendas y generar recordatorios.
 
 ## Cómo ejecutar el proyecto MVC
 
@@ -257,7 +225,7 @@ Desde la raíz de la solución:
 dotnet run --project CitasApp.Web
 ```
 
-También se puede abrir la solución en Visual Studio y ejecutar el proyecto `CitasApp.Web`.
+También se puede abrir la solución en Visual Studio y establecer `CitasApp.Web` como proyecto de inicio.
 
 ## Cómo ejecutar la API REST
 
@@ -267,8 +235,62 @@ Desde la raíz de la solución:
 dotnet run --project CitasApp.Api
 ```
 
-La API usa los puertos y servicios existentes de la arquitectura hexagonal, pero expone respuestas JSON para clientes externos.
+Para probar la API desde otro dispositivo de la misma red, como un celular, se puede ejecutar escuchando en todas las interfaces de red:
+
+```bash
+dotnet run --project CitasApp.Api --urls "http://0.0.0.0:5088"
+```
+
+Después se puede abrir desde el celular usando la IP local de la computadora:
+
+```txt
+http://TU-IP:5088/api/recordatorios/pendientes?dias=7
+```
+
+Ejemplo:
+
+```txt
+http://192.168.1.68:5088/api/recordatorios/pendientes?dias=7
+```
+
+## Cómo probar el endpoint POST de WhatsApp
+
+Desde PowerShell se puede usar:
+
+```powershell
+Invoke-RestMethod -Method POST -Uri "http://localhost:5088/api/recordatorios/whatsapp/C1"
+```
+
+También se puede usar `curl.exe`:
+
+```bash
+curl.exe -X POST http://localhost:5088/api/recordatorios/whatsapp/C1
+```
+
+Si se quiere probar desde otro dispositivo de la red:
+
+```bash
+curl.exe -X POST http://TU-IP:5088/api/recordatorios/whatsapp/C1
+```
+
+`C1` debe ser reemplazado por el identificador real de una cita existente.
+
+## Tecnologías usadas
+
+* C#
+* ASP.NET Core MVC
+* ASP.NET Core Web API
+* Razor Views
+* REST API
+* HTML
+* CSS
+* Bootstrap
+* JSON
+* Git
+* GitHub
+* Visual Studio
 
 ## Nota sobre uso de IA
 
-Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal, agregar una API REST y resolver errores.
+Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal, agregar servicios de aplicación, crear repositorios, agregar una API REST y resolver errores.
+
