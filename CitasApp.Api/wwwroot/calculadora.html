@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculadora</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f3f6fb;
+            color: #1f2937;
+        }
+
+        .contenedor {
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 42px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 14px 0 6px;
+        }
+
+        input, select, button {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 18px;
+            border: none;
+            background: #16a34a;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .resultado, .error {
+            margin-top: 18px;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .resultado {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .volver {
+            display: inline-block;
+            margin-top: 18px;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <main class="contenedor">
+        <h1>Calculadora</h1>
+
+        <section class="card">
+            <label for="numero1">Primer número</label>
+            <input type="number" step="any" id="numero1" placeholder="Ejemplo: 10" />
+
+            <label for="operacion">Operación</label>
+            <select id="operacion">
+                <option value="suma">Sumar (+)</option>
+                <option value="resta">Restar (-)</option>
+                <option value="multiplicacion">Multiplicar (×)</option>
+                <option value="division">Dividir (÷)</option>
+            </select>
+
+            <label for="numero2">Segundo número</label>
+            <input type="number" step="any" id="numero2" placeholder="Ejemplo: 5" />
+
+            <button type="button" onclick="calcular()">Calcular</button>
+
+            <div id="resultado" class="resultado"></div>
+            <div id="error" class="error"></div>
+        </section>
+
+        <a class="volver" href="index.html">← Volver al inicio</a>
+    </main>
+
+    <script>
+        async function calcular() {
+            const numero1 = document.getElementById('numero1').value;
+            const numero2 = document.getElementById('numero2').value;
+            const operacion = document.getElementById('operacion').value;
+            const resultado = document.getElementById('resultado');
+            const error = document.getElementById('error');
+
+            resultado.style.display = 'none';
+            error.style.display = 'none';
+            resultado.textContent = '';
+            error.textContent = '';
+
+            if (numero1 === '' || numero2 === '') {
+                error.textContent = 'Ingresa los dos números para poder calcular.';
+                error.style.display = 'block';
+                return;
+            }
+
+            try {
+                const parametros = new URLSearchParams({ numero1, numero2, operacion });
+                const respuesta = await fetch(`/api/calculadora?${parametros.toString()}`);
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    error.textContent = datos.mensaje || 'No se pudo realizar el cálculo.';
+                    error.style.display = 'block';
+                    return;
+                }
+
+                resultado.textContent = `${datos.numero1} ${datos.simbolo} ${datos.numero2} = ${datos.resultado}`;
+                resultado.style.display = 'block';
+            } catch (ex) {
+                error.textContent = 'Ocurrió un error al consultar la API de calculadora.';
+                error.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

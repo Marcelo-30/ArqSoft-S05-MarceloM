@@ -1,0 +1,806 @@
+diff --git a/CitasApp.Api/Controllers/CalculadoraController.cs b/CitasApp.Api/Controllers/CalculadoraController.cs
+new file mode 100644
+index 0000000..8ca53a6
+--- /dev/null
++++ b/CitasApp.Api/Controllers/CalculadoraController.cs
+@@ -0,0 +1,66 @@
++using Microsoft.AspNetCore.Mvc;
++
++namespace CitasApp.Api.Controllers
++{
++    [ApiController]
++    [Route("api/calculadora")]
++    public class CalculadoraController : ControllerBase
++    {
++        [HttpGet]
++        public IActionResult Calcular(
++            [FromQuery] double? numero1,
++            [FromQuery] double? numero2,
++            [FromQuery] string operacion)
++        {
++            if (numero1 == null || numero2 == null)
++            {
++                return BadRequest(new { mensaje = "Debes enviar numero1 y numero2." });
++            }
++
++            if (string.IsNullOrWhiteSpace(operacion))
++            {
++                return BadRequest(new { mensaje = "Debes enviar la operación: suma, resta, multiplicacion o division." });
++            }
++
++            var operacionNormalizada = operacion.Trim().ToLowerInvariant();
++            double resultado;
++            string simbolo;
++
++            switch (operacionNormalizada)
++            {
++                case "suma":
++                    resultado = numero1.Value + numero2.Value;
++                    simbolo = "+";
++                    break;
++                case "resta":
++                    resultado = numero1.Value - numero2.Value;
++                    simbolo = "-";
++                    break;
++                case "multiplicacion":
++                    resultado = numero1.Value * numero2.Value;
++                    simbolo = "×";
++                    break;
++                case "division":
++                    if (numero2.Value == 0)
++                    {
++                        return BadRequest(new { mensaje = "No se puede dividir entre cero." });
++                    }
++
++                    resultado = numero1.Value / numero2.Value;
++                    simbolo = "÷";
++                    break;
++                default:
++                    return BadRequest(new { mensaje = "Operación no válida. Usa suma, resta, multiplicacion o division." });
++            }
++
++            return Ok(new
++            {
++                numero1 = numero1.Value,
++                numero2 = numero2.Value,
++                operacion = operacionNormalizada,
++                simbolo,
++                resultado
++            });
++        }
++    }
++}
+diff --git a/CitasApp.Api/Program.cs b/CitasApp.Api/Program.cs
+index c234325..632763a 100644
+--- a/CitasApp.Api/Program.cs
++++ b/CitasApp.Api/Program.cs
+@@ -50,6 +50,8 @@ if (!app.Environment.IsDevelopment())
+ }
+ 
+ //app.UseHttpsRedirection();
++app.UseDefaultFiles();
++app.UseStaticFiles();
+ app.UseCors("ApiCors");
+ app.UseAuthorization();
+ app.MapControllers();
+diff --git a/CitasApp.Api/Properties/launchSettings.json b/CitasApp.Api/Properties/launchSettings.json
+index 86f7f7b..9bc0e61 100644
+--- a/CitasApp.Api/Properties/launchSettings.json
++++ b/CitasApp.Api/Properties/launchSettings.json
+@@ -4,7 +4,7 @@
+     "http": {
+       "commandName": "Project",
+       "dotnetRunMessages": true,
+-      "launchBrowser": false,
++      "launchBrowser": true,
+       "applicationUrl": "http://localhost:5088",
+       "environmentVariables": {
+         "ASPNETCORE_ENVIRONMENT": "Development"
+@@ -13,7 +13,7 @@
+     "https": {
+       "commandName": "Project",
+       "dotnetRunMessages": true,
+-      "launchBrowser": false,
++      "launchBrowser": true,
+       "applicationUrl": "https://localhost:7099;http://localhost:5088",
+       "environmentVariables": {
+         "ASPNETCORE_ENVIRONMENT": "Development"
+diff --git a/CitasApp.Api/wwwroot/agenda.html b/CitasApp.Api/wwwroot/agenda.html
+new file mode 100644
+index 0000000..31db0e9
+--- /dev/null
++++ b/CitasApp.Api/wwwroot/agenda.html
+@@ -0,0 +1,224 @@
++<!DOCTYPE html>
++<html lang="es">
++<head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>Agenda de citas</title>
++    <style>
++        body {
++            margin: 0;
++            font-family: Arial, Helvetica, sans-serif;
++            background: #f3f6fb;
++            color: #1f2937;
++        }
++
++        .contenedor {
++            max-width: 1000px;
++            margin: 0 auto;
++            padding: 42px 20px;
++        }
++
++        .card {
++            background: white;
++            border-radius: 18px;
++            padding: 24px;
++            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
++            margin-bottom: 24px;
++        }
++
++        label {
++            display: block;
++            font-weight: bold;
++            margin-bottom: 8px;
++        }
++
++        .formulario {
++            display: grid;
++            grid-template-columns: 1fr auto;
++            gap: 12px;
++            align-items: end;
++        }
++
++        input, button {
++            box-sizing: border-box;
++            padding: 12px;
++            border-radius: 10px;
++            font-size: 16px;
++        }
++
++        input {
++            width: 100%;
++            border: 1px solid #cbd5e1;
++        }
++
++        button {
++            border: none;
++            background: #2563eb;
++            color: white;
++            font-weight: bold;
++            cursor: pointer;
++        }
++
++        table {
++            width: 100%;
++            border-collapse: collapse;
++            background: white;
++            border-radius: 12px;
++            overflow: hidden;
++        }
++
++        th, td {
++            padding: 12px;
++            border-bottom: 1px solid #e2e8f0;
++            text-align: left;
++        }
++
++        th {
++            background: #e0ecff;
++        }
++
++        .mensaje {
++            margin-top: 14px;
++            padding: 12px;
++            border-radius: 10px;
++            display: none;
++        }
++
++        .info {
++            background: #dbeafe;
++            color: #1e40af;
++        }
++
++        .error {
++            background: #fee2e2;
++            color: #991b1b;
++        }
++
++        .volver {
++            display: inline-block;
++            margin-top: 18px;
++            color: #2563eb;
++            text-decoration: none;
++            font-weight: bold;
++        }
++
++        @media (max-width: 640px) {
++            .formulario {
++                grid-template-columns: 1fr;
++            }
++        }
++    </style>
++</head>
++<body>
++    <main class="contenedor">
++        <h1>Agenda de citas</h1>
++
++        <section class="card">
++            <p>
++                Escribe el Id del médico para consultar su agenda usando el endpoint existente:
++                <strong>/api/medicos/{medicoId}/agenda</strong>.
++            </p>
++            <p>
++                Ejemplos con los datos actuales: <strong>M1</strong>, <strong>M3</strong>, <strong>M4</strong>, <strong>M5</strong>.
++            </p>
++
++            <div class="formulario">
++                <div>
++                    <label for="medicoId">Id del médico</label>
++                    <input id="medicoId" value="M1" />
++                </div>
++                <button type="button" onclick="cargarAgenda()">Ver agenda</button>
++            </div>
++
++            <div id="mensaje" class="mensaje"></div>
++        </section>
++
++        <section class="card" id="tablaContenedor" style="display:none;">
++            <table>
++                <thead>
++                    <tr>
++                        <th>Cita</th>
++                        <th>Fecha</th>
++                        <th>Hora</th>
++                        <th>Paciente</th>
++                        <th>Teléfono</th>
++                        <th>Motivo</th>
++                        <th>Estado</th>
++                    </tr>
++                </thead>
++                <tbody id="agendaBody"></tbody>
++            </table>
++        </section>
++
++        <a class="volver" href="index.html">← Volver al inicio</a>
++    </main>
++
++    <script>
++        async function cargarAgenda() {
++            const medicoId = document.getElementById('medicoId').value.trim();
++            const mensaje = document.getElementById('mensaje');
++            const tablaContenedor = document.getElementById('tablaContenedor');
++            const agendaBody = document.getElementById('agendaBody');
++
++            mensaje.style.display = 'none';
++            mensaje.className = 'mensaje';
++            mensaje.textContent = '';
++            tablaContenedor.style.display = 'none';
++            agendaBody.innerHTML = '';
++
++            if (!medicoId) {
++                mostrarMensaje('Escribe el Id del médico.', true);
++                return;
++            }
++
++            try {
++                const respuesta = await fetch(`/api/medicos/${encodeURIComponent(medicoId)}/agenda`);
++                const datos = await respuesta.json();
++
++                if (!respuesta.ok) {
++                    mostrarMensaje(datos.mensaje || 'No se pudo consultar la agenda.', true);
++                    return;
++                }
++
++                if (!Array.isArray(datos) || datos.length === 0) {
++                    mostrarMensaje('No hay citas registradas para este médico.', false);
++                    return;
++                }
++
++                datos.forEach(cita => {
++                    const fila = document.createElement('tr');
++                    fila.innerHTML = `
++                        <td>${cita.citaId ?? ''}</td>
++                        <td>${cita.fecha ?? ''}</td>
++                        <td>${formatearHora(cita.hora)}</td>
++                        <td>${cita.pacienteNombre ?? ''}</td>
++                        <td>${cita.pacienteTelefono ?? ''}</td>
++                        <td>${cita.motivo ?? ''}</td>
++                        <td>${cita.estado ?? ''}</td>
++                    `;
++                    agendaBody.appendChild(fila);
++                });
++
++                tablaContenedor.style.display = 'block';
++            } catch (error) {
++                mostrarMensaje('Ocurrió un error al consultar la API.', true);
++            }
++        }
++
++        function mostrarMensaje(texto, esError) {
++            const mensaje = document.getElementById('mensaje');
++            mensaje.textContent = texto;
++            mensaje.className = esError ? 'mensaje error' : 'mensaje info';
++            mensaje.style.display = 'block';
++        }
++
++        function formatearHora(hora) {
++            if (!hora) {
++                return '';
++            }
++
++            return hora.length >= 5 ? hora.substring(0, 5) : hora;
++        }
++    </script>
++</body>
++</html>
+diff --git a/CitasApp.Api/wwwroot/calculadora.html b/CitasApp.Api/wwwroot/calculadora.html
+new file mode 100644
+index 0000000..6540e71
+--- /dev/null
++++ b/CitasApp.Api/wwwroot/calculadora.html
+@@ -0,0 +1,150 @@
++<!DOCTYPE html>
++<html lang="es">
++<head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>Calculadora</title>
++    <style>
++        body {
++            margin: 0;
++            font-family: Arial, Helvetica, sans-serif;
++            background: #f3f6fb;
++            color: #1f2937;
++        }
++
++        .contenedor {
++            max-width: 560px;
++            margin: 0 auto;
++            padding: 42px 20px;
++        }
++
++        .card {
++            background: white;
++            border-radius: 18px;
++            padding: 28px;
++            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
++        }
++
++        h1 {
++            text-align: center;
++            margin-bottom: 24px;
++        }
++
++        label {
++            display: block;
++            font-weight: bold;
++            margin: 14px 0 6px;
++        }
++
++        input, select, button {
++            width: 100%;
++            box-sizing: border-box;
++            padding: 12px;
++            border: 1px solid #cbd5e1;
++            border-radius: 10px;
++            font-size: 16px;
++        }
++
++        button {
++            margin-top: 18px;
++            border: none;
++            background: #16a34a;
++            color: white;
++            font-weight: bold;
++            cursor: pointer;
++        }
++
++        .resultado, .error {
++            margin-top: 18px;
++            padding: 12px;
++            border-radius: 10px;
++            display: none;
++        }
++
++        .resultado {
++            background: #dbeafe;
++            color: #1e40af;
++        }
++
++        .error {
++            background: #fee2e2;
++            color: #991b1b;
++        }
++
++        .volver {
++            display: inline-block;
++            margin-top: 18px;
++            color: #2563eb;
++            text-decoration: none;
++            font-weight: bold;
++        }
++    </style>
++</head>
++<body>
++    <main class="contenedor">
++        <h1>Calculadora</h1>
++
++        <section class="card">
++            <label for="numero1">Primer número</label>
++            <input type="number" step="any" id="numero1" placeholder="Ejemplo: 10" />
++
++            <label for="operacion">Operación</label>
++            <select id="operacion">
++                <option value="suma">Sumar (+)</option>
++                <option value="resta">Restar (-)</option>
++                <option value="multiplicacion">Multiplicar (×)</option>
++                <option value="division">Dividir (÷)</option>
++            </select>
++
++            <label for="numero2">Segundo número</label>
++            <input type="number" step="any" id="numero2" placeholder="Ejemplo: 5" />
++
++            <button type="button" onclick="calcular()">Calcular</button>
++
++            <div id="resultado" class="resultado"></div>
++            <div id="error" class="error"></div>
++        </section>
++
++        <a class="volver" href="index.html">← Volver al inicio</a>
++    </main>
++
++    <script>
++        async function calcular() {
++            const numero1 = document.getElementById('numero1').value;
++            const numero2 = document.getElementById('numero2').value;
++            const operacion = document.getElementById('operacion').value;
++            const resultado = document.getElementById('resultado');
++            const error = document.getElementById('error');
++
++            resultado.style.display = 'none';
++            error.style.display = 'none';
++            resultado.textContent = '';
++            error.textContent = '';
++
++            if (numero1 === '' || numero2 === '') {
++                error.textContent = 'Ingresa los dos números para poder calcular.';
++                error.style.display = 'block';
++                return;
++            }
++
++            try {
++                const parametros = new URLSearchParams({ numero1, numero2, operacion });
++                const respuesta = await fetch(`/api/calculadora?${parametros.toString()}`);
++                const datos = await respuesta.json();
++
++                if (!respuesta.ok) {
++                    error.textContent = datos.mensaje || 'No se pudo realizar el cálculo.';
++                    error.style.display = 'block';
++                    return;
++                }
++
++                resultado.textContent = `${datos.numero1} ${datos.simbolo} ${datos.numero2} = ${datos.resultado}`;
++                resultado.style.display = 'block';
++            } catch (ex) {
++                error.textContent = 'Ocurrió un error al consultar la API de calculadora.';
++                error.style.display = 'block';
++            }
++        }
++    </script>
++</body>
++</html>
+diff --git a/CitasApp.Api/wwwroot/index.html b/CitasApp.Api/wwwroot/index.html
+new file mode 100644
+index 0000000..1ce73fc
+--- /dev/null
++++ b/CitasApp.Api/wwwroot/index.html
+@@ -0,0 +1,106 @@
++<!DOCTYPE html>
++<html lang="es">
++<head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>CitasApp API - Inicio</title>
++    <style>
++        body {
++            margin: 0;
++            font-family: Arial, Helvetica, sans-serif;
++            background: #f3f6fb;
++            color: #1f2937;
++        }
++
++        .contenedor {
++            max-width: 980px;
++            margin: 0 auto;
++            padding: 48px 20px;
++        }
++
++        .hero {
++            text-align: center;
++            margin-bottom: 36px;
++        }
++
++        .hero h1 {
++            font-size: 42px;
++            margin-bottom: 10px;
++        }
++
++        .hero p {
++            font-size: 18px;
++            color: #64748b;
++            margin: 0;
++        }
++
++        .opciones {
++            display: grid;
++            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
++            gap: 24px;
++        }
++
++        .card {
++            background: white;
++            border-radius: 18px;
++            padding: 28px;
++            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
++        }
++
++        .icono {
++            font-size: 44px;
++            margin-bottom: 14px;
++        }
++
++        .card h2 {
++            margin: 0 0 10px;
++        }
++
++        .card p {
++            color: #64748b;
++            min-height: 72px;
++        }
++
++        .boton {
++            display: inline-block;
++            width: 100%;
++            box-sizing: border-box;
++            text-align: center;
++            text-decoration: none;
++            border-radius: 10px;
++            padding: 12px 16px;
++            background: #2563eb;
++            color: white;
++            font-weight: bold;
++        }
++
++        .boton.verde {
++            background: #16a34a;
++        }
++    </style>
++</head>
++<body>
++    <main class="contenedor">
++        <section class="hero">
++            <h1>CitasApp API</h1>
++            <p>Selecciona el módulo que quieres abrir.</p>
++        </section>
++
++        <section class="opciones">
++            <article class="card">
++                <div class="icono">📅</div>
++                <h2>Agenda de citas</h2>
++                <p>Consulta la agenda de citas por médico usando los endpoints que ya tienes en la API.</p>
++                <a class="boton" href="agenda.html">Entrar a la agenda</a>
++            </article>
++
++            <article class="card">
++                <div class="icono">🧮</div>
++                <h2>Calculadora</h2>
++                <p>Abre una calculadora básica para sumar, restar, multiplicar y dividir.</p>
++                <a class="boton verde" href="calculadora.html">Abrir calculadora</a>
++            </article>
++        </section>
++    </main>
++</body>
++</html>
+diff --git a/CitasApp.Web/Controllers/CalculadoraController.cs b/CitasApp.Web/Controllers/CalculadoraController.cs
+new file mode 100644
+index 0000000..585a0e9
+--- /dev/null
++++ b/CitasApp.Web/Controllers/CalculadoraController.cs
+@@ -0,0 +1,12 @@
++using Microsoft.AspNetCore.Mvc;
++
++namespace CitasApp.Web.Controllers
++{
++    public class CalculadoraController : Controller
++    {
++        public IActionResult Index()
++        {
++            return View();
++        }
++    }
++}
+diff --git a/CitasApp.Web/Views/Calculadora/Index.cshtml b/CitasApp.Web/Views/Calculadora/Index.cshtml
+new file mode 100644
+index 0000000..a9491b7
+--- /dev/null
++++ b/CitasApp.Web/Views/Calculadora/Index.cshtml
+@@ -0,0 +1,103 @@
++@{
++    ViewData["Title"] = "Calculadora";
++}
++
++<h1 class="mb-4">Calculadora</h1>
++
++<div class="row justify-content-center">
++    <div class="col-md-6 col-lg-5">
++        <div class="card shadow-sm border-0">
++            <div class="card-body p-4">
++                <div class="mb-3">
++                    <label for="numero1" class="form-label">Primer número</label>
++                    <input type="number" step="any" id="numero1" class="form-control" placeholder="Ejemplo: 10" />
++                </div>
++
++                <div class="mb-3">
++                    <label for="operacion" class="form-label">Operación</label>
++                    <select id="operacion" class="form-select">
++                        <option value="suma">Sumar (+)</option>
++                        <option value="resta">Restar (-)</option>
++                        <option value="multiplicacion">Multiplicar (×)</option>
++                        <option value="division">Dividir (÷)</option>
++                    </select>
++                </div>
++
++                <div class="mb-3">
++                    <label for="numero2" class="form-label">Segundo número</label>
++                    <input type="number" step="any" id="numero2" class="form-control" placeholder="Ejemplo: 5" />
++                </div>
++
++                <button type="button" class="btn btn-success w-100" onclick="calcular()">
++                    Calcular
++                </button>
++
++                <div id="resultado" class="alert alert-info mt-4 d-none" role="alert"></div>
++                <div id="error" class="alert alert-danger mt-4 d-none" role="alert"></div>
++            </div>
++        </div>
++
++        <div class="mt-3">
++            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
++                Volver al inicio
++            </a>
++        </div>
++    </div>
++</div>
++
++@section Scripts {
++    <script>
++        function calcular() {
++            const numero1 = parseFloat(document.getElementById('numero1').value);
++            const numero2 = parseFloat(document.getElementById('numero2').value);
++            const operacion = document.getElementById('operacion').value;
++            const resultado = document.getElementById('resultado');
++            const error = document.getElementById('error');
++
++            resultado.classList.add('d-none');
++            error.classList.add('d-none');
++            resultado.textContent = '';
++            error.textContent = '';
++
++            if (Number.isNaN(numero1) || Number.isNaN(numero2)) {
++                error.textContent = 'Ingresa los dos números para poder calcular.';
++                error.classList.remove('d-none');
++                return;
++            }
++
++            let valor;
++            let simbolo;
++
++            switch (operacion) {
++                case 'suma':
++                    valor = numero1 + numero2;
++                    simbolo = '+';
++                    break;
++                case 'resta':
++                    valor = numero1 - numero2;
++                    simbolo = '-';
++                    break;
++                case 'multiplicacion':
++                    valor = numero1 * numero2;
++                    simbolo = '×';
++                    break;
++                case 'division':
++                    if (numero2 === 0) {
++                        error.textContent = 'No se puede dividir entre cero.';
++                        error.classList.remove('d-none');
++                        return;
++                    }
++                    valor = numero1 / numero2;
++                    simbolo = '÷';
++                    break;
++                default:
++                    error.textContent = 'Operación no válida.';
++                    error.classList.remove('d-none');
++                    return;
++            }
++
++            resultado.textContent = `${numero1} ${simbolo} ${numero2} = ${valor}`;
++            resultado.classList.remove('d-none');
++        }
++    </script>
++}
+diff --git a/CitasApp.Web/Views/Home/Index.cshtml b/CitasApp.Web/Views/Home/Index.cshtml
+index 19c8d3f..19bfc91 100644
+--- a/CitasApp.Web/Views/Home/Index.cshtml
++++ b/CitasApp.Web/Views/Home/Index.cshtml
+@@ -1,8 +1,42 @@
+ @{
+-    ViewData["Title"] = "Home Page";
++    ViewData["Title"] = "Inicio";
+ }
+ 
+-<div class="text-center">
+-    <h1 class="display-4">Welcome</h1>
+-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+-</div>
++<section class="home-hero text-center py-5">
++    <h1 class="display-4 fw-bold">CitasApp</h1>
++    <p class="lead text-muted mb-4">
++        Selecciona a qué módulo quieres entrar.
++    </p>
++
++    <div class="row justify-content-center g-4">
++        <div class="col-md-5">
++            <div class="card h-100 shadow-sm border-0 opcion-card">
++                <div class="card-body p-4">
++                    <div class="opcion-icono mb-3">📅</div>
++                    <h2 class="h4">Agenda de citas</h2>
++                    <p class="text-muted">
++                        Entra al módulo que ya tienes para ver, crear, editar o eliminar citas médicas.
++                    </p>
++                    <a asp-controller="Cita" asp-action="Index" class="btn btn-primary w-100">
++                        Entrar a la agenda
++                    </a>
++                </div>
++            </div>
++        </div>
++
++        <div class="col-md-5">
++            <div class="card h-100 shadow-sm border-0 opcion-card">
++                <div class="card-body p-4">
++                    <div class="opcion-icono mb-3">🧮</div>
++                    <h2 class="h4">Calculadora</h2>
++                    <p class="text-muted">
++                        Usa una calculadora básica para sumar, restar, multiplicar y dividir.
++                    </p>
++                    <a asp-controller="Calculadora" asp-action="Index" class="btn btn-success w-100">
++                        Abrir calculadora
++                    </a>
++                </div>
++            </div>
++        </div>
++    </div>
++</section>
+diff --git a/CitasApp.Web/Views/Shared/_Layout.cshtml b/CitasApp.Web/Views/Shared/_Layout.cshtml
+index 15768de..e9cf95c 100644
+--- a/CitasApp.Web/Views/Shared/_Layout.cshtml
++++ b/CitasApp.Web/Views/Shared/_Layout.cshtml
+@@ -46,11 +46,15 @@
+ 
+                         <li class="nav-item">
+                             <a class="nav-link text-dark" asp-area="" asp-controller="Cita" asp-action="Index">
+-                                Citas
++                                Agenda de citas
+                             </a>
+                         </li>
+ 
+-                     
++                        <li class="nav-item">
++                            <a class="nav-link text-dark" asp-area="" asp-controller="Calculadora" asp-action="Index">
++                                Calculadora
++                            </a>
++                        </li>
+ 
+                     </ul>
+                 </div>

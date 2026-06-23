@@ -50,6 +50,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseCors("ApiCors");
 app.UseAuthorization();
 app.MapControllers();

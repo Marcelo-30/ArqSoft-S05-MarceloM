@@ -1,0 +1,103 @@
+@{
+    ViewData["Title"] = "Calculadora";
+}
+
+<h1 class="mb-4">Calculadora</h1>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label for="numero1" class="form-label">Primer número</label>
+                    <input type="number" step="any" id="numero1" class="form-control" placeholder="Ejemplo: 10" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="operacion" class="form-label">Operación</label>
+                    <select id="operacion" class="form-select">
+                        <option value="suma">Sumar (+)</option>
+                        <option value="resta">Restar (-)</option>
+                        <option value="multiplicacion">Multiplicar (×)</option>
+                        <option value="division">Dividir (÷)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="numero2" class="form-label">Segundo número</label>
+                    <input type="number" step="any" id="numero2" class="form-control" placeholder="Ejemplo: 5" />
+                </div>
+
+                <button type="button" class="btn btn-success w-100" onclick="calcular()">
+                    Calcular
+                </button>
+
+                <div id="resultado" class="alert alert-info mt-4 d-none" role="alert"></div>
+                <div id="error" class="alert alert-danger mt-4 d-none" role="alert"></div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                Volver al inicio
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function calcular() {
+            const numero1 = parseFloat(document.getElementById('numero1').value);
+            const numero2 = parseFloat(document.getElementById('numero2').value);
+            const operacion = document.getElementById('operacion').value;
+            const resultado = document.getElementById('resultado');
+            const error = document.getElementById('error');
+
+            resultado.classList.add('d-none');
+            error.classList.add('d-none');
+            resultado.textContent = '';
+            error.textContent = '';
+
+            if (Number.isNaN(numero1) || Number.isNaN(numero2)) {
+                error.textContent = 'Ingresa los dos números para poder calcular.';
+                error.classList.remove('d-none');
+                return;
+            }
+
+            let valor;
+            let simbolo;
+
+            switch (operacion) {
+                case 'suma':
+                    valor = numero1 + numero2;
+                    simbolo = '+';
+                    break;
+                case 'resta':
+                    valor = numero1 - numero2;
+                    simbolo = '-';
+                    break;
+                case 'multiplicacion':
+                    valor = numero1 * numero2;
+                    simbolo = '×';
+                    break;
+                case 'division':
+                    if (numero2 === 0) {
+                        error.textContent = 'No se puede dividir entre cero.';
+                        error.classList.remove('d-none');
+                        return;
+                    }
+                    valor = numero1 / numero2;
+                    simbolo = '÷';
+                    break;
+                default:
+                    error.textContent = 'Operación no válida.';
+                    error.classList.remove('d-none');
+                    return;
+            }
+
+            resultado.textContent = `${numero1} ${simbolo} ${numero2} = ${valor}`;
+            resultado.classList.remove('d-none');
+        }
+    </script>
+}

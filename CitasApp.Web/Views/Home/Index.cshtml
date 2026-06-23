@@ -1,8 +1,42 @@
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="home-hero text-center py-5">
+    <h1 class="display-4 fw-bold">CitasApp</h1>
+    <p class="lead text-muted mb-4">
+        Selecciona a qué módulo quieres entrar.
+    </p>
+
+    <div class="row justify-content-center g-4">
+        <div class="col-md-5">
+            <div class="card h-100 shadow-sm border-0 opcion-card">
+                <div class="card-body p-4">
+                    <div class="opcion-icono mb-3">📅</div>
+                    <h2 class="h4">Agenda de citas</h2>
+                    <p class="text-muted">
+                        Entra al módulo que ya tienes para ver, crear, editar o eliminar citas médicas.
+                    </p>
+                    <a asp-controller="Cita" asp-action="Index" class="btn btn-primary w-100">
+                        Entrar a la agenda
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card h-100 shadow-sm border-0 opcion-card">
+                <div class="card-body p-4">
+                    <div class="opcion-icono mb-3">🧮</div>
+                    <h2 class="h4">Calculadora</h2>
+                    <p class="text-muted">
+                        Usa una calculadora básica para sumar, restar, multiplicar y dividir.
+                    </p>
+                    <a asp-controller="Calculadora" asp-action="Index" class="btn btn-success w-100">
+                        Abrir calculadora
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

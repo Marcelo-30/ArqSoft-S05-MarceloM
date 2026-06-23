@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CitasApp API - Inicio</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f3f6fb;
+            color: #1f2937;
+        }
+
+        .contenedor {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 48px 20px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .opciones {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+        }
+
+        .icono {
+            font-size: 44px;
+            margin-bottom: 14px;
+        }
+
+        .card h2 {
+            margin: 0 0 10px;
+        }
+
+        .card p {
+            color: #64748b;
+            min-height: 72px;
+        }
+
+        .boton {
+            display: inline-block;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            background: #2563eb;
+            color: white;
+            font-weight: bold;
+        }
+
+        .boton.verde {
+            background: #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <main class="contenedor">
+        <section class="hero">
+            <h1>CitasApp API</h1>
+            <p>Selecciona el módulo que quieres abrir.</p>
+        </section>
+
+        <section class="opciones">
+            <article class="card">
+                <div class="icono">📅</div>
+                <h2>Agenda de citas</h2>
+                <p>Consulta la agenda de citas por médico usando los endpoints que ya tienes en la API.</p>
+                <a class="boton" href="agenda.html">Entrar a la agenda</a>
+            </article>
+
+            <article class="card">
+                <div class="icono">🧮</div>
+                <h2>Calculadora</h2>
+                <p>Abre una calculadora básica para sumar, restar, multiplicar y dividir.</p>
+                <a class="boton verde" href="calculadora.html">Abrir calculadora</a>
+            </article>
+        </section>
+    </main>
+</body>
+</html>
