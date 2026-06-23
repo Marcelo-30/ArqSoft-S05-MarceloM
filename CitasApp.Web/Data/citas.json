@@ -9,15 +9,6 @@
     "Estado": "Pendiente"
   },
   {
-    "Id": "C3",
-    "PacienteId": "P3",
-    "MedicoId": "M3",
-    "Fecha": "2026-06-12",
-    "Hora": "12:00:00",
-    "Motivo": "Revisi\u00F3n de piel",
-    "Estado": "Pendiente"
-  },
-  {
     "Id": "C4",
     "PacienteId": "P4",
     "MedicoId": "M4",
