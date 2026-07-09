@@ -35,6 +35,51 @@ La aplicación conserva la interfaz web MVC mediante `CitasApp.Web`, pero ademá
 * Consulta de recordatorios pendientes.
 * Generación simulada de recordatorios por WhatsApp.
 
+## Patrones GoF aplicados
+
+En la rama `GOF` se aplicaron patrones de diseño de forma puntual, sin cambiar la funcionalidad principal del sistema.
+
+### Strategy
+
+**Archivos y clases:**
+
+* `CitasApp.Application/Strategies/Calculadora/IOperacionCalculadora.cs`
+* `CitasApp.Application/Strategies/Calculadora/SumaOperacionCalculadora.cs`
+* `CitasApp.Application/Strategies/Calculadora/RestaOperacionCalculadora.cs`
+* `CitasApp.Application/Strategies/Calculadora/MultiplicacionOperacionCalculadora.cs`
+* `CitasApp.Application/Strategies/Calculadora/DivisionOperacionCalculadora.cs`
+* `CitasApp.Api/Controllers/CalculadoraController.cs`
+
+**Problema que resuelve:**
+
+El controlador de calculadora concentraba la lógica de todas las operaciones en una estructura `switch`. Con Strategy, cada operación se separa en una clase independiente que implementa `IOperacionCalculadora`, por lo que agregar nuevas operaciones no requiere modificar el flujo principal del controlador.
+
+### Factory Method
+
+**Archivos y clases:**
+
+* `CitasApp.Infrastructure/Factories/JsonRepositoryFactory.cs`
+* `CitasApp.Infrastructure/Factories/JsonPacienteRepositoryFactory.cs`
+* `CitasApp.Infrastructure/Factories/JsonMedicoRepositoryFactory.cs`
+* `CitasApp.Infrastructure/Factories/JsonCitaRepositoryFactory.cs`
+* `CitasApp.Api/Program.cs`
+* `CitasApp.Web/Program.cs`
+
+**Problema que resuelve:**
+
+La creación de repositorios JSON repetía la lógica para ubicar o crear los archivos de datos. Con Factory Method, la clase base `JsonRepositoryFactory<TRepository>` centraliza el flujo de creación y cada fábrica concreta decide qué repositorio construir.
+
+### Singleton
+
+**Archivos y clases:**
+
+* `CitasApp.Api/Program.cs`
+* `CitasApp.Web/Program.cs`
+
+**Problema que resuelve:**
+
+Los repositorios JSON y las estrategias de calculadora no necesitan una instancia nueva por cada petición. Se registran con vida `Singleton` en el contenedor de dependencias para reutilizar una única instancia durante la ejecución de la aplicación.
+
 ## Arquitectura del proyecto
 
 La solución está dividida en cinco proyectos:
