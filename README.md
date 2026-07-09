@@ -335,7 +335,7 @@ curl.exe -X POST http://TU-IP:5088/api/recordatorios/whatsapp/C1
 * GitHub
 * Visual Studio
 
-## Nota sobre uso de IA
+## Cláusula de uso de IA
 
-Durante el desarrollo de este proyecto se utilizó apoyo de inteligencia artificial como herramienta de asistencia para estructurar ideas, revisar código, implementar mejoras, migrar a arquitectura hexagonal, agregar servicios de aplicación, crear repositorios, agregar una API REST y resolver errores.
+Durante el desarrollo de este proyecto se utilizó asistencia de inteligencia artificial como apoyo para la generación de ideas, organización del código, documentación y mejora de la estructura del proyecto. Todas las decisiones finales, revisión, adaptación e implementación fueron realizadas por el autor del proyecto.
 
