@@ -1,5 +1,6 @@
 using CitasApp.Application.Services;
 using CitasApp.Domain.Interfaces;
+using CitasApp.Infrastructure.Factories;
 using CitasApp.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,23 +19,23 @@ else
     builder.Services.AddSingleton<IPacienteRepository>(serviceProvider =>
     {
         var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-        var ruta = Path.Combine(env.ContentRootPath, "Data", "pacientes.json");
-        return new JsonPacienteRepository(ruta);
+        var factory = new JsonPacienteRepositoryFactory(env.ContentRootPath);
+        return factory.Crear();
     });
 }
 
 builder.Services.AddSingleton<IMedicoRepository>(serviceProvider =>
 {
     var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var ruta = Path.Combine(env.ContentRootPath, "Data", "medicos.json");
-    return new JsonMedicoRepository(ruta);
+    var factory = new JsonMedicoRepositoryFactory(env.ContentRootPath);
+    return factory.Crear();
 });
 
 builder.Services.AddSingleton<ICitaRepository>(serviceProvider =>
 {
     var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var ruta = Path.Combine(env.ContentRootPath, "Data", "citas.json");
-    return new JsonCitaRepository(ruta);
+    var factory = new JsonCitaRepositoryFactory(env.ContentRootPath);
+    return factory.Crear();
 });
 
 builder.Services.AddScoped<PacienteService>();

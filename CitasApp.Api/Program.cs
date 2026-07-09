@@ -1,6 +1,7 @@
 using CitasApp.Application.Services;
+using CitasApp.Application.Strategies.Calculadora;
 using CitasApp.Domain.Interfaces;
-using CitasApp.Infrastructure.Repositories;
+using CitasApp.Infrastructure.Factories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,23 +21,28 @@ builder.Services.AddCors(options =>
 builder.Services.AddSingleton<IPacienteRepository>(serviceProvider =>
 {
     var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var ruta = ObtenerRutaArchivoData(env, "pacientes.json");
-    return new JsonPacienteRepository(ruta);
+    var factory = new JsonPacienteRepositoryFactory(env.ContentRootPath);
+    return factory.Crear();
 });
 
 builder.Services.AddSingleton<IMedicoRepository>(serviceProvider =>
 {
     var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var ruta = ObtenerRutaArchivoData(env, "medicos.json");
-    return new JsonMedicoRepository(ruta);
+    var factory = new JsonMedicoRepositoryFactory(env.ContentRootPath);
+    return factory.Crear();
 });
 
 builder.Services.AddSingleton<ICitaRepository>(serviceProvider =>
 {
     var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var ruta = ObtenerRutaArchivoData(env, "citas.json");
-    return new JsonCitaRepository(ruta);
+    var factory = new JsonCitaRepositoryFactory(env.ContentRootPath);
+    return factory.Crear();
 });
+
+builder.Services.AddSingleton<IOperacionCalculadora, SumaOperacionCalculadora>();
+builder.Services.AddSingleton<IOperacionCalculadora, RestaOperacionCalculadora>();
+builder.Services.AddSingleton<IOperacionCalculadora, MultiplicacionOperacionCalculadora>();
+builder.Services.AddSingleton<IOperacionCalculadora, DivisionOperacionCalculadora>();
 
 builder.Services.AddScoped<PacienteService>();
 builder.Services.AddScoped<MedicoService>();
@@ -57,24 +63,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-static string ObtenerRutaArchivoData(IWebHostEnvironment env, string nombreArchivo)
-{
-    var rutaCompartidaConWeb = Path.GetFullPath(
-        Path.Combine(env.ContentRootPath, "..", "CitasApp.Web", "Data", nombreArchivo));
-
-    if (File.Exists(rutaCompartidaConWeb))
-    {
-        return rutaCompartidaConWeb;
-    }
-
-    var rutaLocalApi = Path.Combine(env.ContentRootPath, "Data", nombreArchivo);
-    Directory.CreateDirectory(Path.GetDirectoryName(rutaLocalApi)!);
-
-    if (!File.Exists(rutaLocalApi))
-    {
-        File.WriteAllText(rutaLocalApi, "[]");
-    }
-
-    return rutaLocalApi;
-}
