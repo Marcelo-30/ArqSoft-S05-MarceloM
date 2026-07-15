@@ -1,11 +1,13 @@
 using CitasApp.Application.Exceptions;
 using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CitasApp.Web.Controllers
 {
+    [Authorize]
     public class CitaController : Controller
     {
         private readonly CitaService _citaService;
