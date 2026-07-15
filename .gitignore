@@ -13,3 +13,7 @@ obj/
 *.suo
 *.userosscache
 *.sln.docstates
+
+# Local configuration and secrets
+appsettings.Local.json
+**/appsettings.Local.json
