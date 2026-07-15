@@ -1,4 +1,5 @@
 using CitasApp.Application.Services;
+using CitasApp.Application.Security;
 using CitasApp.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,14 @@ namespace CitasApp.Web.Controllers
             _medicoService = medicoService;
         }
 
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
             IReadOnlyList<Medico> medicos = await _medicoService.ObtenerTodosAsync(cancellationToken);
             return View(medicos);
         }
 
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<IActionResult> Detalle(string id, CancellationToken cancellationToken)
         {
             Medico? medico = await _medicoService.ObtenerPorIdAsync(id, cancellationToken);
@@ -28,9 +31,11 @@ namespace CitasApp.Web.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         public IActionResult Crear() => View();
 
         [HttpPost]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(Medico medico, CancellationToken cancellationToken)
         {
@@ -44,6 +49,7 @@ namespace CitasApp.Web.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         public async Task<IActionResult> Editar(string id, CancellationToken cancellationToken)
         {
             Medico? medico = await _medicoService.ObtenerPorIdAsync(id, cancellationToken);
@@ -51,6 +57,7 @@ namespace CitasApp.Web.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(Medico medico, CancellationToken cancellationToken)
         {
@@ -64,6 +71,7 @@ namespace CitasApp.Web.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {

@@ -1,0 +1,33 @@
+@model IReadOnlyList<CitasApp.Infrastructure.Identity.UsuarioIdentityDto>
+@{
+    ViewData["Title"] = "Usuarios";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Usuarios</h1>
+    <a asp-action="Crear" class="btn btn-primary">Crear usuario</a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Correo</th>
+                <th>Roles</th>
+                <th>Medico</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var usuario in Model)
+            {
+                <tr>
+                    <td>@usuario.Email</td>
+                    <td>@string.Join(", ", usuario.Roles)</td>
+                    <td>@(usuario.MedicoId ?? "-")</td>
+                    <td>@(usuario.Bloqueado ? "Bloqueado" : "Activo")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

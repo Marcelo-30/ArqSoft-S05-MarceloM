@@ -1,5 +1,6 @@
 using CitasApp.Application.Exceptions;
 using CitasApp.Application.Services;
+using CitasApp.Application.Security;
 using CitasApp.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CitasApp.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
     public class CitaController : Controller
     {
         private readonly CitaService _citaService;

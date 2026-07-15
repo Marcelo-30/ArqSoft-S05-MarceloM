@@ -1,11 +1,12 @@
 using CitasApp.Application.Services;
+using CitasApp.Application.Security;
 using CitasApp.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
     public class PacienteController : Controller
     {
         private readonly PacienteService _pacienteService;

@@ -1,0 +1,48 @@
+@model IReadOnlyList<MiAgendaItemViewModel>
+@{
+    ViewData["Title"] = "Mi agenda";
+}
+
+<h1 class="h3 mb-3">Mi agenda</h1>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Paciente</th>
+                <th>Motivo</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Cita.Fecha.ToString("dd/MM/yyyy")</td>
+                    <td>@item.Cita.Hora.ToString("HH:mm")</td>
+                    <td>@item.PacienteNombre</td>
+                    <td>@item.Cita.Motivo</td>
+                    <td>
+                        <form asp-action="CambiarEstado" method="post" class="d-flex gap-2">
+                            <input type="hidden" name="id" value="@item.Cita.Id" />
+                            <select name="estado" class="form-select form-select-sm">
+                                @foreach (string estado in EstadosCita.Todos)
+                                {
+                                    <option value="@estado" selected="@(estado == item.Cita.Estado)">@estado</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

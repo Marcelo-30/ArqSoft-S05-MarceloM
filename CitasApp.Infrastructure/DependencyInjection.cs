@@ -45,6 +45,7 @@ namespace CitasApp.Infrastructure
             services.Configure<IdentitySeedOptions>(
                 configuration.GetSection(IdentitySeedOptions.SectionName));
             services.AddScoped<IdentitySeeder>();
+            services.AddScoped<UsuarioIdentityService>();
 
             services.AddScoped<IPacienteRepository, PostgreSqlPacienteRepository>();
             services.AddScoped<IMedicoRepository, PostgreSqlMedicoRepository>();
