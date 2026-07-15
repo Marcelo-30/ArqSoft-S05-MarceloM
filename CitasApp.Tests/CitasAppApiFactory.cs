@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using CitasApp.Application.Security;
 using CitasApp.Domain.Models;
 using CitasApp.Infrastructure.Identity;
@@ -29,6 +30,7 @@ public sealed class CitasAppApiFactory : WebApplicationFactory<Program>
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
     private readonly Dictionary<string, string?> _originalEnvironment = new();
+    private readonly string _jwtKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
     private bool _initialized;
 
     public CitasAppApiFactory()
@@ -37,7 +39,7 @@ public sealed class CitasAppApiFactory : WebApplicationFactory<Program>
         SetTestEnvironment("ConnectionStrings__PostgreSql", "Host=integration-tests");
         SetTestEnvironment("Jwt__Issuer", "CitasApp.Tests");
         SetTestEnvironment("Jwt__Audience", "CitasApp.Tests.Client");
-        SetTestEnvironment("Jwt__Key", "tests-only-signing-key-with-more-than-32-bytes");
+        SetTestEnvironment("Jwt__Key", _jwtKey);
         SetTestEnvironment("Jwt__ExpirationMinutes", "30");
         SetTestEnvironment("IdentitySeed__Enabled", "false");
     }
@@ -52,7 +54,7 @@ public sealed class CitasAppApiFactory : WebApplicationFactory<Program>
                 ["ConnectionStrings:PostgreSql"] = "Host=integration-tests",
                 ["Jwt:Issuer"] = "CitasApp.Tests",
                 ["Jwt:Audience"] = "CitasApp.Tests.Client",
-                ["Jwt:Key"] = "tests-only-signing-key-with-more-than-32-bytes",
+                ["Jwt:Key"] = _jwtKey,
                 ["Jwt:ExpirationMinutes"] = "30",
                 ["IdentitySeed:Enabled"] = "false"
             });
