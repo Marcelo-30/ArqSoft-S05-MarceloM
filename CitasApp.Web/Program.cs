@@ -1,50 +1,47 @@
 using CitasApp.Application.Services;
 using CitasApp.Domain.Interfaces;
-using CitasApp.Infrastructure.Factories;
+using CitasApp.Infrastructure.Persistence;
 using CitasApp.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Configuración MVC
 builder.Services.AddControllersWithViews();
 
-var usarPacientesEnMemoria = false;
+// Obtener la cadena de conexión de appsettings.json
+string connectionString =
+    builder.Configuration.GetConnectionString("PostgreSql")
+    ?? throw new InvalidOperationException(
+        "No se encontró la cadena de conexión 'PostgreSql'.");
 
-if (usarPacientesEnMemoria)
+// Registrar Entity Framework Core con PostgreSQL
+builder.Services.AddDbContext<CitasAppDbContext>(options =>
 {
-    builder.Services.AddSingleton<IPacienteRepository, MemoriaPacienteRepository>();
-}
-else
-{
-    builder.Services.AddSingleton<IPacienteRepository>(serviceProvider =>
-    {
-        var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-        var factory = new JsonPacienteRepositoryFactory(env.ContentRootPath);
-        return factory.Crear();
-    });
-}
-
-builder.Services.AddSingleton<IMedicoRepository>(serviceProvider =>
-{
-    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var factory = new JsonMedicoRepositoryFactory(env.ContentRootPath);
-    return factory.Crear();
+    options.UseNpgsql(connectionString);
 });
 
-builder.Services.AddSingleton<ICitaRepository>(serviceProvider =>
-{
-    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var factory = new JsonCitaRepositoryFactory(env.ContentRootPath);
-    return factory.Crear();
-});
+// Registrar los repositorios PostgreSQL
+builder.Services.AddScoped<
+    IPacienteRepository,
+    PostgreSqlPacienteRepository>();
 
+builder.Services.AddScoped<
+    IMedicoRepository,
+    PostgreSqlMedicoRepository>();
+
+builder.Services.AddScoped<
+    ICitaRepository,
+    PostgreSqlCitaRepository>();
+
+// Registrar los servicios de aplicación
 builder.Services.AddScoped<PacienteService>();
 builder.Services.AddScoped<MedicoService>();
 builder.Services.AddScoped<CitaService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configuración del pipeline HTTP
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

@@ -1,13 +1,17 @@
 using CitasApp.Application.Services;
 using CitasApp.Application.Strategies.Calculadora;
 using CitasApp.Domain.Interfaces;
-using CitasApp.Infrastructure.Factories;
+using CitasApp.Infrastructure.Persistence;
+using CitasApp.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controladores de la API
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// Configuración de CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ApiCors", policy =>
@@ -18,32 +22,49 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddSingleton<IPacienteRepository>(serviceProvider =>
+// Obtener la cadena de conexión
+string connectionString =
+    builder.Configuration.GetConnectionString("PostgreSql")
+    ?? throw new InvalidOperationException(
+        "No se encontró la cadena de conexión 'PostgreSql'.");
+
+// Configurar Entity Framework Core con PostgreSQL
+builder.Services.AddDbContext<CitasAppDbContext>(options =>
 {
-    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var factory = new JsonPacienteRepositoryFactory(env.ContentRootPath);
-    return factory.Crear();
+    options.UseNpgsql(connectionString);
 });
 
-builder.Services.AddSingleton<IMedicoRepository>(serviceProvider =>
-{
-    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var factory = new JsonMedicoRepositoryFactory(env.ContentRootPath);
-    return factory.Crear();
-});
+// Repositorios PostgreSQL
+builder.Services.AddScoped<
+    IPacienteRepository,
+    PostgreSqlPacienteRepository>();
 
-builder.Services.AddSingleton<ICitaRepository>(serviceProvider =>
-{
-    var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-    var factory = new JsonCitaRepositoryFactory(env.ContentRootPath);
-    return factory.Crear();
-});
+builder.Services.AddScoped<
+    IMedicoRepository,
+    PostgreSqlMedicoRepository>();
 
-builder.Services.AddSingleton<IOperacionCalculadora, SumaOperacionCalculadora>();
-builder.Services.AddSingleton<IOperacionCalculadora, RestaOperacionCalculadora>();
-builder.Services.AddSingleton<IOperacionCalculadora, MultiplicacionOperacionCalculadora>();
-builder.Services.AddSingleton<IOperacionCalculadora, DivisionOperacionCalculadora>();
+builder.Services.AddScoped<
+    ICitaRepository,
+    PostgreSqlCitaRepository>();
 
+// Estrategias de la calculadora
+builder.Services.AddSingleton<
+    IOperacionCalculadora,
+    SumaOperacionCalculadora>();
+
+builder.Services.AddSingleton<
+    IOperacionCalculadora,
+    RestaOperacionCalculadora>();
+
+builder.Services.AddSingleton<
+    IOperacionCalculadora,
+    MultiplicacionOperacionCalculadora>();
+
+builder.Services.AddSingleton<
+    IOperacionCalculadora,
+    DivisionOperacionCalculadora>();
+
+// Servicios de aplicación
 builder.Services.AddScoped<PacienteService>();
 builder.Services.AddScoped<MedicoService>();
 builder.Services.AddScoped<CitaService>();
@@ -55,11 +76,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-//app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
 app.UseCors("ApiCors");
+
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

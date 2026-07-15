@@ -2,7 +2,7 @@ namespace CitasApp.Domain.Models
 {
     public class Paciente
     {
-        public string Id { get; set; } = string.Empty;
+        public string Id { get; set; } = Guid.NewGuid().ToString();
 
         public string Nombre { get; set; } = string.Empty;
 
