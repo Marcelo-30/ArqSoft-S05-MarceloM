@@ -162,3 +162,12 @@ Las pruebas usan SQLite en memoria, exclusivamente como sustituto controlado de 
 ## Diagnostico tecnico
 
 El inventario de smells, evidencia, riesgos, decisiones y resultado aplicado se encuentra en `docs/code-smells-report.md`.
+
+
+## Uso de inteligencia artificial
+
+Durante el desarrollo y la documentación de este proyecto se utilizaron herramientas de inteligencia artificial como apoyo para consultar conceptos, detectar posibles errores, proponer mejoras de código y redactar parte de la documentación técnica.
+
+Las respuestas generadas por estas herramientas no fueron incorporadas de manera automática. Cada sugerencia fue revisada, adaptada y validada mediante compilación, pruebas y análisis del funcionamiento de la aplicación.
+
+La inteligencia artificial se utilizó únicamente como herramienta de asistencia. Las decisiones de arquitectura, implementación, seguridad, configuración y diseño final son responsabilidad de los autores del proyecto.
