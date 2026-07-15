@@ -1,341 +1,163 @@
 # CitasApp
 
-## Descripción del proyecto
+CitasApp administra pacientes, medicos y citas mediante una aplicacion MVC y una API REST. La solucion usa .NET 10, arquitectura hexagonal, Entity Framework Core, PostgreSQL y ASP.NET Core Identity.
 
-CitasApp es una aplicación desarrollada con ASP.NET Core que permite gestionar pacientes, médicos y citas médicas.
+## Arquitectura
 
-El proyecto fue reorganizado desde una estructura MVC tradicional hacia una arquitectura hexagonal. En esta rama se agrega una nueva capa llamada `CitasApp.Api`, que funciona como una API REST para permitir que clientes externos consuman información del sistema.
+- `CitasApp.Domain`: entidades y puertos de persistencia. No depende de EF Core, PostgreSQL, Identity, JWT ni ASP.NET Core.
+- `CitasApp.Application`: casos de uso, validaciones compartidas, roles y reglas de agenda.
+- `CitasApp.Infrastructure`: adaptadores PostgreSQL, JSON y memoria, `CitasAppDbContext`, Identity, JWT y migraciones.
+- `CitasApp.Web`: adaptador MVC con autenticacion por cookie.
+- `CitasApp.Api`: adaptador HTTP con autenticacion JWT Bearer.
+- `CitasApp.Tests`: pruebas de integracion de autenticacion, autorizacion y persistencia.
 
-La aplicación conserva la interfaz web MVC mediante `CitasApp.Web`, pero además expone endpoints REST para que los médicos puedan consultar su agenda desde un celular y para preparar recordatorios de citas por WhatsApp para los pacientes.
+PostgreSQL es el adaptador activo y se registra con alcance `Scoped`. Los adaptadores JSON y memoria se conservan como alternativas, pero no se registran simultaneamente para las mismas interfaces.
 
-## Funcionalidades principales
+## Requisitos
 
-* Visualización de pacientes registrados.
-* Visualización del detalle de un paciente.
-* Registro de nuevos pacientes.
-* Edición de pacientes existentes.
-* Eliminación de pacientes.
-* Visualización de médicos disponibles.
-* Visualización del detalle de un médico.
-* Registro de nuevos médicos.
-* Edición de médicos existentes.
-* Eliminación de médicos.
-* Visualización de la agenda completa de citas.
-* Creación de nuevas citas médicas.
-* Edición de citas médicas existentes.
-* Eliminación de citas médicas.
-* Filtrado de citas por paciente.
-* Persistencia de datos mediante archivos JSON.
-* Uso de interfaces en Domain como puertos del dominio.
-* Uso de servicios en Application para coordinar las operaciones de la aplicación.
-* Uso de repositorios como adaptadores de infraestructura.
-* Aplicación MVC en `CitasApp.Web`.
-* API REST en `CitasApp.Api`.
-* Consulta de agenda médica mediante endpoints HTTP.
-* Consulta de recordatorios pendientes.
-* Generación simulada de recordatorios por WhatsApp.
+- .NET SDK 10.
+- PostgreSQL accesible desde los dos hosts.
+- `dotnet-ef` 10 para administrar migraciones.
 
-## Patrones GoF aplicados
+Si `dotnet ef` no esta disponible:
 
-En la rama `GOF` se aplicaron patrones de diseño de forma puntual, sin cambiar la funcionalidad principal del sistema.
-
-### Strategy
-
-**Archivos y clases:**
-
-* `CitasApp.Application/Strategies/Calculadora/IOperacionCalculadora.cs`
-* `CitasApp.Application/Strategies/Calculadora/SumaOperacionCalculadora.cs`
-* `CitasApp.Application/Strategies/Calculadora/RestaOperacionCalculadora.cs`
-* `CitasApp.Application/Strategies/Calculadora/MultiplicacionOperacionCalculadora.cs`
-* `CitasApp.Application/Strategies/Calculadora/DivisionOperacionCalculadora.cs`
-* `CitasApp.Api/Controllers/CalculadoraController.cs`
-
-**Problema que resuelve:**
-
-El controlador de calculadora concentraba la lógica de todas las operaciones en una estructura `switch`. Con Strategy, cada operación se separa en una clase independiente que implementa `IOperacionCalculadora`, por lo que agregar nuevas operaciones no requiere modificar el flujo principal del controlador.
-
-### Factory Method
-
-**Archivos y clases:**
-
-* `CitasApp.Infrastructure/Factories/JsonRepositoryFactory.cs`
-* `CitasApp.Infrastructure/Factories/JsonPacienteRepositoryFactory.cs`
-* `CitasApp.Infrastructure/Factories/JsonMedicoRepositoryFactory.cs`
-* `CitasApp.Infrastructure/Factories/JsonCitaRepositoryFactory.cs`
-* `CitasApp.Api/Program.cs`
-* `CitasApp.Web/Program.cs`
-
-**Problema que resuelve:**
-
-La creación de repositorios JSON repetía la lógica para ubicar o crear los archivos de datos. Con Factory Method, la clase base `JsonRepositoryFactory<TRepository>` centraliza el flujo de creación y cada fábrica concreta decide qué repositorio construir.
-
-### Singleton
-
-**Archivos y clases:**
-
-* `CitasApp.Api/Program.cs`
-* `CitasApp.Web/Program.cs`
-
-**Problema que resuelve:**
-
-Los repositorios JSON y las estrategias de calculadora no necesitan una instancia nueva por cada petición. Se registran con vida `Singleton` en el contenedor de dependencias para reutilizar una única instancia durante la ejecución de la aplicación.
-
-## Arquitectura del proyecto
-
-La solución está dividida en cinco proyectos:
-
-```txt
-CitasApp
-│
-├── CitasApp.Domain
-├── CitasApp.Application
-├── CitasApp.Infrastructure
-├── CitasApp.Web
-└── CitasApp.Api
+```powershell
+dotnet tool install --global dotnet-ef --version 10.0.9
 ```
 
-## Capas de la arquitectura
+## Configurar PostgreSQL
 
-### CitasApp.Domain
+Los `appsettings.json` versionados no contienen credenciales. Configure la misma base en ambos proyectos mediante User Secrets:
 
-Contiene los modelos principales del sistema y las interfaces de repositorio. Esta capa representa el núcleo del dominio y no depende de las demás capas.
-
-```txt
-CitasApp.Domain
-├── Models
-│   ├── Paciente.cs
-│   ├── Medico.cs
-│   └── Cita.cs
-│
-└── Interfaces
-    ├── IRepository.cs
-    ├── IPacienteRepository.cs
-    ├── IMedicoRepository.cs
-    └── ICitaRepository.cs
+```powershell
+dotnet user-secrets set "ConnectionStrings:PostgreSql" "Host=localhost;Port=5432;Database=citasapp;Username=<USUARIO>;Password=<PASSWORD>" --project CitasApp.Web
+dotnet user-secrets set "ConnectionStrings:PostgreSql" "Host=localhost;Port=5432;Database=citasapp;Username=<USUARIO>;Password=<PASSWORD>" --project CitasApp.Api
 ```
 
-### CitasApp.Application
+En servidores use la variable `ConnectionStrings__PostgreSql`. La contrasena PostgreSQL que estuvo versionada antes de esta refactorizacion debe rotarse; eliminarla del estado actual de Git no la elimina del historial previo.
 
-Contiene los servicios de aplicación. Estos servicios usan las interfaces definidas en `CitasApp.Domain` para coordinar las operaciones de pacientes, médicos y citas sin depender directamente de implementaciones concretas de infraestructura.
+## Aplicar migraciones
 
-```txt
-CitasApp.Application
-└── Services
-    ├── PacienteService.cs
-    ├── MedicoService.cs
-    └── CitaService.cs
+La solucion conserva la migracion inicial y agrega:
+
+- `20260715023757_AddIdentityAuthentication`: tablas, indices y relaciones de Identity, relacion opcional unica entre usuario y medico e indice de conflicto de agenda.
+- `20260715025234_CascadeAppointmentDeletes`: borrado atomico de citas al eliminar su paciente o medico mediante FK de PostgreSQL.
+
+El contexto de diseno lee la conexion desde una variable de entorno:
+
+```powershell
+$env:ConnectionStrings__PostgreSql = "Host=localhost;Port=5432;Database=citasapp;Username=<USUARIO>;Password=<PASSWORD>"
+dotnet ef migrations list --project CitasApp.Infrastructure --startup-project CitasApp.Infrastructure
+dotnet ef database update --project CitasApp.Infrastructure --startup-project CitasApp.Infrastructure
 ```
 
-### CitasApp.Infrastructure
+Revise la base y un respaldo antes de ejecutar `database update`. Este repositorio no ejecuta migraciones automaticamente al iniciar y no usa `EnsureCreated()` en produccion.
 
-Contiene los adaptadores concretos de persistencia. En esta capa están los repositorios que implementan las interfaces definidas en `CitasApp.Domain`.
+## Configurar JWT
 
-```txt
-CitasApp.Infrastructure
-└── Repositories
-    ├── JsonRepository.cs
-    ├── JsonPacienteRepository.cs
-    ├── JsonMedicoRepository.cs
-    ├── JsonCitaRepository.cs
-    └── MemoriaPacienteRepository.cs
+La API valida issuer, audience, firma, vigencia y expiracion. Genere una clave aleatoria y guardela solo en User Secrets:
+
+```powershell
+$jwtKey = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+dotnet user-secrets set "Jwt:Issuer" "CitasApp.Api" --project CitasApp.Api
+dotnet user-secrets set "Jwt:Audience" "CitasApp.Clients" --project CitasApp.Api
+dotnet user-secrets set "Jwt:Key" $jwtKey --project CitasApp.Api
+dotnet user-secrets set "Jwt:ExpirationMinutes" "60" --project CitasApp.Api
 ```
 
-`JsonPacienteRepository` usa archivos JSON para guardar pacientes.
+En despliegues use `Jwt__Issuer`, `Jwt__Audience`, `Jwt__Key` y `Jwt__ExpirationMinutes`. La clave debe tener al menos 32 bytes y la expiracion debe estar entre 5 y 1440 minutos.
 
-`MemoriaPacienteRepository` implementa la misma interfaz `IPacienteRepository`, pero guarda los datos en memoria. Esto permite cambiar el adaptador registrado sin modificar el dominio, los servicios de aplicación ni los controladores.
+## Inicializar roles y administrador
 
-### CitasApp.Web
+El inicializador crea de forma idempotente los roles `Administrador`, `Recepcionista` y `Medico`. Para crear el primer administrador, habilitelo temporalmente en un solo host; Web y API comparten la misma base:
 
-Contiene la aplicación ASP.NET Core MVC: controladores, vistas, archivos estáticos, configuración y archivos JSON de datos.
-
-```txt
-CitasApp.Web
-├── Controllers
-│   ├── PacienteController.cs
-│   ├── MedicoController.cs
-│   ├── CitaController.cs
-│   └── HomeController.cs
-│
-├── Views
-│   ├── Paciente
-│   ├── Medico
-│   ├── Cita
-│   ├── Home
-│   └── Shared
-│
-├── Data
-│   ├── pacientes.json
-│   ├── medicos.json
-│   └── citas.json
-│
-├── Models
-│   └── ErrorViewModel.cs
-│
-├── wwwroot
-├── Program.cs
-└── appsettings.json
-```
-
-### CitasApp.Api
-
-Contiene una API REST como adaptador de entrada adicional. Esta capa permite que otros clientes, como una aplicación móvil o un navegador desde celular, consuman datos de la agenda médica sin depender de las vistas MVC.
-
-```txt
-CitasApp.Api
-├── Controllers
-│   ├── AgendaMedicoController.cs
-│   └── RecordatoriosController.cs
-│
-├── Dtos
-│   ├── AgendaMedicoDto.cs
-│   ├── RecordatorioWhatsappDto.cs
-│   └── EnviarWhatsappResponseDto.cs
-│
-├── Program.cs
-├── appsettings.json
-└── CitasApp.Api.csproj
-```
-
-## Endpoints de la API
-
-### Agenda médica
-
-```txt
-GET /api/medicos/{medicoId}/agenda
-GET /api/medicos/{medicoId}/agenda/hoy
-GET /api/medicos/{medicoId}/agenda/fecha/{fecha}
-```
-
-Ejemplos:
-
-```txt
-GET /api/medicos/M1/agenda
-GET /api/medicos/M1/agenda/hoy
-GET /api/medicos/M1/agenda/fecha/2026-06-10
-```
-
-Estos endpoints permiten consultar la agenda de un médico por su identificador.
-
-### Recordatorios por WhatsApp
-
-```txt
-GET /api/recordatorios/pendientes?dias=1
-POST /api/recordatorios/whatsapp/{citaId}
-```
-
-Ejemplos:
-
-```txt
-GET /api/recordatorios/pendientes?dias=7
-POST /api/recordatorios/whatsapp/C1
-```
-
-El envío por WhatsApp queda simulado. El endpoint genera el mensaje y una URL de WhatsApp (`wa.me`). Para un envío real se debe integrar un proveedor externo como Meta WhatsApp Cloud API o Twilio.
-
-## Referencias entre proyectos
-
-```txt
-CitasApp.Web → CitasApp.Application
-CitasApp.Web → CitasApp.Infrastructure
-CitasApp.Web → CitasApp.Domain
-
-CitasApp.Api → CitasApp.Application
-CitasApp.Api → CitasApp.Infrastructure
-CitasApp.Api → CitasApp.Domain
-
-CitasApp.Infrastructure → CitasApp.Domain
-
-CitasApp.Application → CitasApp.Domain
-
-CitasApp.Domain → sin dependencias externas del proyecto
-```
-
-## Persistencia de datos
-
-La persistencia JSON se guarda en la carpeta `Data` dentro del proyecto web:
-
-```txt
-CitasApp.Web/Data/pacientes.json
-CitasApp.Web/Data/medicos.json
-CitasApp.Web/Data/citas.json
-```
-
-Los repositorios JSON leen y guardan información en esos archivos. La API utiliza la misma información para consultar agendas y generar recordatorios.
-
-## Cómo ejecutar el proyecto MVC
-
-Desde la raíz de la solución:
-
-```bash
+```powershell
+dotnet user-secrets set "IdentitySeed:Enabled" "true" --project CitasApp.Web
+dotnet user-secrets set "IdentitySeed:Admin:Email" "<EMAIL_ADMIN>" --project CitasApp.Web
+dotnet user-secrets set "IdentitySeed:Admin:Password" "<PASSWORD_ADMIN_SEGURO>" --project CitasApp.Web
 dotnet run --project CitasApp.Web
 ```
 
-También se puede abrir la solución en Visual Studio y establecer `CitasApp.Web` como proyecto de inicio.
+Despues del primer inicio correcto, detenga el host y deshabilite el seed:
 
-## Cómo ejecutar la API REST
+```powershell
+dotnet user-secrets set "IdentitySeed:Enabled" "false" --project CitasApp.Web
+```
 
-Desde la raíz de la solución:
+La contrasena debe tener al menos 12 caracteres, mayuscula, minuscula, numero y caracter no alfanumerico. Identity almacena el hash, nunca la contrasena. Un administrador puede crear los demas usuarios desde `/Usuarios` o `POST /api/auth/users`.
 
-```bash
+Un usuario con rol `Medico` requiere una relacion explicita con un registro `Medico`; no se infiere por nombre o correo. Un medico solo puede vincularse con un usuario.
+
+## Ejecutar
+
+```powershell
+dotnet restore CitasApp.slnx
+dotnet build CitasApp.slnx --no-restore
+dotnet run --project CitasApp.Web
+```
+
+La Web usa `http://localhost:5261` en el perfil HTTP. El login esta en `/Cuenta/IniciarSesion` y el cierre de sesion aparece en la navegacion para usuarios autenticados.
+
+En otra terminal:
+
+```powershell
 dotnet run --project CitasApp.Api
 ```
 
-Para probar la API desde otro dispositivo de la misma red, como un celular, se puede ejecutar escuchando en todas las interfaces de red:
+La API usa `http://localhost:5088` en el perfil HTTP.
 
-```bash
-dotnet run --project CitasApp.Api --urls "http://0.0.0.0:5088"
-```
+## Probar login y JWT
 
-Después se puede abrir desde el celular usando la IP local de la computadora:
-
-```txt
-http://TU-IP:5088/api/recordatorios/pendientes?dias=7
-```
-
-Ejemplo:
-
-```txt
-http://192.168.1.68:5088/api/recordatorios/pendientes?dias=7
-```
-
-## Cómo probar el endpoint POST de WhatsApp
-
-Desde PowerShell se puede usar:
+`POST /api/auth/login` recibe correo y contrasena, y devuelve token, expiracion UTC, usuario no sensible y roles:
 
 ```powershell
-Invoke-RestMethod -Method POST -Uri "http://localhost:5088/api/recordatorios/whatsapp/C1"
+$body = @{
+  email = "<EMAIL>"
+  password = "<PASSWORD>"
+} | ConvertTo-Json
+
+$login = Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://localhost:5088/api/auth/login" `
+  -ContentType "application/json" `
+  -Body $body
+
+$headers = @{ Authorization = "Bearer $($login.token)" }
+Invoke-RestMethod -Uri "http://localhost:5088/api/pacientes" -Headers $headers
 ```
 
-También se puede usar `curl.exe`:
+En Postman seleccione `Authorization > Bearer Token` y use el valor `token` de la respuesta. No incluya la palabra `Bearer` dentro del campo de token. La API no habilita Swagger UI actualmente.
 
-```bash
-curl.exe -X POST http://localhost:5088/api/recordatorios/whatsapp/C1
+## Permisos
+
+| Rol | Permisos principales |
+|---|---|
+| `Administrador` | Usuarios, pacientes, medicos, citas, agendas y recordatorios. |
+| `Recepcionista` | Pacientes, consulta de medicos, CRUD de citas, agendas y recordatorios. |
+| `Medico` | Su propia agenda y cambio de estado de sus propias citas. |
+
+Los endpoints CRUD requieren JWT. La calculadora permanece anonima porque no opera datos del negocio. La creacion de usuarios por API requiere `Administrador`; no existe registro anonimo.
+
+## CORS
+
+En Development, la API permite cualquier origen para facilitar pruebas locales. Fuera de Development debe configurar una lista explicita, por ejemplo:
+
+```powershell
+$env:Cors__AllowedOrigins__0 = "https://app.example.com"
 ```
 
-Si se quiere probar desde otro dispositivo de la red:
+`AllowAnyOrigin()` no es apropiado para produccion.
 
-```bash
-curl.exe -X POST http://TU-IP:5088/api/recordatorios/whatsapp/C1
+## Compilar y probar
+
+```powershell
+dotnet restore CitasApp.slnx
+dotnet build CitasApp.slnx --no-restore
+dotnet test CitasApp.slnx --no-build --no-restore
 ```
 
-`C1` debe ser reemplazado por el identificador real de una cita existente.
+Las pruebas usan SQLite en memoria, exclusivamente como sustituto controlado de PostgreSQL. Cubren roles, seed idempotente, hash, login correcto e incorrecto, JWT, respuestas 401/403, CRUD, conflicto de horario y relaciones.
 
-## Tecnologías usadas
+## Diagnostico tecnico
 
-* C#
-* ASP.NET Core MVC
-* ASP.NET Core Web API
-* Razor Views
-* REST API
-* HTML
-* CSS
-* Bootstrap
-* JSON
-* Git
-* GitHub
-* Visual Studio
-
-## Cláusula de uso de IA
-
-Durante el desarrollo de este proyecto se utilizó asistencia de inteligencia artificial como apoyo para la generación de ideas, organización del código, documentación y mejora de la estructura del proyecto. Todas las decisiones finales, revisión, adaptación e implementación fueron realizadas por el autor del proyecto.
-
+El inventario de smells, evidencia, riesgos, decisiones y resultado aplicado se encuentra en `docs/code-smells-report.md`.

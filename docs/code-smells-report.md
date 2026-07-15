@@ -40,7 +40,7 @@ Alcance: proyectos Domain, Application, Infrastructure, Web y Api, configuracion
 - Las estrategias de calculadora son inmutables y no dependen de servicios con alcance menor; registrarlas como `Singleton` es valido.
 - `CitasAppDbContext` y los repositorios PostgreSQL estan registrados como `Scoped`, que es la duracion correcta para EF Core.
 - Las llaves foraneas de citas y los indices unicos de email/licencia son controles de integridad apropiados y deben conservarse.
-- No se usa `EnsureCreated()` ni se borraron migraciones previas.
+- No se usa `EnsureCreated()` en los hosts de produccion ni se borraron migraciones previas. Las pruebas de integracion usan `EnsureCreated()` sobre SQLite efimero.
 - Los repositorios JSON y memoria no se eliminan: son adaptadores alternativos utiles, aunque hoy no esten activos.
 - No se encontro manejo de excepciones que exponga deliberadamente trazas internas; el problema es la ausencia de traduccion controlada para conflictos de persistencia, que se abordara en los adaptadores HTTP.
 
@@ -49,3 +49,57 @@ Alcance: proyectos Domain, Application, Infrastructure, Web y Api, configuracion
 Se priorizan riesgos de seguridad, integridad y concurrencia. No se hara una reescritura completa ni una conversion masiva de ids a value objects. Los controladores de agenda y recordatorios conservaran su contrato; se reducira su costo indirectamente mediante puertos de consulta especificos y se documentara la deuda restante.
 
 El estado `Decision inicial` registra la decision tomada antes de modificar codigo. Al finalizar se agregara una seccion con las refactorizaciones realmente aplicadas y cualquier desviacion justificada.
+
+## Resultado de la refactorizacion
+
+| Hallazgo | Resultado aplicado | Estado final |
+|---|---|---|
+| Secreto PostgreSQL versionado | Se vaciaron las cadenas versionadas y se agregaron User Secrets a Web y Api. La rotacion de la credencial historica queda como paso manual obligatorio. | Aplicado |
+| Dependencias de infraestructura en Domain/Application | Se quitaron EF Core, Npgsql y herramientas de migracion del nucleo. Identity, JWT y PostgreSQL permanecen en Infrastructure. | Aplicado |
+| `IRepository<T>.Leer/Guardar(List<T>)` | Se reemplazo por puertos explicitos y asincronos por agregado, con consultas por id y operaciones CRUD. | Aplicado |
+| Sincronizacion destructiva de tablas | Se elimino el repositorio PostgreSQL generico que reemplazaba tablas completas. Los adaptadores concretos modifican solo las filas necesarias. | Aplicado |
+| I/O sincrono de EF Core | Los repositorios usan consultas y guardados asincronos con `CancellationToken`. | Aplicado |
+| Borrado incompatible con FK y carrera entre operaciones | Application elimina dependencias antes del padre para los adaptadores alternativos. PostgreSQL agrega FK `ON DELETE CASCADE` para que el resultado sea atomico aun ante inserciones concurrentes. | Aplicado |
+| IDs secuenciales y doble generacion | Application genera un unico GUID. Los modelos ya no generan otro identificador al construirse. Se conserva `string` para evitar una migracion amplia. | Aplicado parcialmente |
+| Validacion insuficiente/repetida | Se agregaron anotaciones, `ModelState`, validacion compartida de citas, estados centralizados y traduccion HTTP de conflicto de horario. | Aplicado |
+| Sin autenticacion/autorizacion | Identity vive en Infrastructure; Web usa cookies seguras y Api usa JWT Bearer. CRUD, usuarios, agendas y cambios de estado tienen autorizacion por rol. | Aplicado |
+| Configuracion DI duplicada | `AddCitasAppInfrastructure` centraliza DbContext, Identity, repositorios y servicios. Cada host conserva solo su mecanismo de entrada. | Aplicado |
+| CORS abierto | `AllowAnyOrigin` queda limitado a Development; produccion exige `Cors:AllowedOrigins`. | Aplicado |
+| Primitive obsession | Estados validos e IDs se centralizaron. Los value objects para todos los IDs se descartaron por costo de migracion y bajo beneficio inmediato. | Aplicado parcialmente |
+| Feature envy en agenda/recordatorios | Agenda consulta citas por medico y usa diccionario para pacientes. La proyeccion completa permanece en el controlador para no reescribir el modulo ni cambiar contratos. | No modificado completamente |
+| Concurrencia del adaptador JSON | Se adapto al CRUD nuevo, se serializo el acceso y la escritura usa reemplazo atomico. La fabrica aun conoce la ruta Web por compatibilidad y el adaptador no esta activo. | Aplicado parcialmente |
+| Respuesta enganosa de WhatsApp | Se conservo el contrato existente porque el envio sigue documentado como simulacion y cambiarlo podria romper consumidores. | No modificado |
+| README obsoleto | Se documento PostgreSQL, secretos, JWT, seed, roles, migraciones, ejecucion y pruebas. | Aplicado |
+| Sin pruebas | Se agregaron siete pruebas de integracion para autenticacion, autorizacion, seed, persistencia, relaciones y conflicto de agenda. | Aplicado |
+
+## Autenticacion y decisiones de arquitectura
+
+- `CitasAppDbContext` hereda de `IdentityDbContext<ApplicationUser>` y conserva los mapeos de pacientes, medicos y citas.
+- `ApplicationUser` existe solo en Infrastructure. Su `MedicoId` opcional y unico representa de forma explicita al usuario medico.
+- Domain y Application no dependen de `IdentityUser`, EF Core, JWT, Npgsql ni tipos web.
+- Los roles se expresan en Application como constantes sin dependencia de Identity; los adaptadores de entrada los usan para autorizar.
+- Web configura cookie `HttpOnly`, `Secure`, `SameSite=Lax`, expiracion y lockout. La redireccion posterior al login acepta solo URLs locales.
+- Api valida issuer, audience, firma y expiracion. El token no contiene contrasenas; incluye identificador, correo, roles y `medico_id` solo cuando existe la relacion.
+- El seed es idempotente, controlado por configuracion y no contiene credenciales en codigo.
+- No se ejecuto `Update-Database`; las migraciones se generaron e inspeccionaron como scripts idempotentes.
+
+## Migraciones agregadas
+
+- `20260715023757_AddIdentityAuthentication`: esquema completo de Identity, relacion usuario-medico e indice parcial unico de horario activo por medico.
+- `20260715025234_CascadeAppointmentDeletes`: cambia las FK de citas a paciente y medico a `ON DELETE CASCADE`.
+
+No se modifico ni elimino manualmente la migracion inicial. El snapshot fue actualizado por las herramientas de EF Core.
+
+## Validacion final
+
+- `dotnet restore CitasApp.slnx`: correcto, sin advertencias despues de fijar una version segura de SQLitePCLRaw en pruebas.
+- `dotnet build CitasApp.slnx --no-restore`: correcto, 0 advertencias y 0 errores.
+- `dotnet test CitasApp.slnx --no-build --no-restore`: 7 pruebas superadas, 0 fallidas, 0 omitidas.
+- `dotnet list CitasApp.Tests/CitasApp.Tests.csproj package --vulnerable --include-transitive --no-restore`: no se detectaron paquetes vulnerables.
+
+## Deuda tecnica conservada
+
+- La proyeccion de agenda y recordatorios sigue en controladores y carga pacientes para construir DTOs. Extraer consultas dedicadas seria razonable si el volumen crece, pero no justificaba reescribir el modulo en este cambio.
+- Los IDs siguen siendo `string`; migrarlos a value objects tipados requiere conversion de datos, contratos y migraciones que exceden el beneficio actual.
+- `EnviarRecordatorioWhatsapp` conserva `Enviado = true` para un envio simulado por compatibilidad. El README aclara que no existe integracion real con WhatsApp.
+- La ruta de los adaptadores JSON sigue ligada a la carpeta Web. Es deuda de un adaptador inactivo, no una dependencia del nucleo.
