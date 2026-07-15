@@ -145,12 +145,12 @@ namespace CitasApp.Infrastructure.Persistence
                 entity.HasOne<Paciente>()
                     .WithMany()
                     .HasForeignKey(cita => cita.PacienteId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne<Medico>()
                     .WithMany()
                     .HasForeignKey(cita => cita.MedicoId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(cita => cita.PacienteId);
                 entity.HasIndex(cita => cita.MedicoId);

@@ -67,6 +67,9 @@ public sealed class PersistenceIntegrationTests
         Assert.Equal(
             2,
             context.Model.FindEntityType(typeof(Cita))!.GetForeignKeys().Count());
+        Assert.All(
+            context.Model.FindEntityType(typeof(Cita))!.GetForeignKeys(),
+            foreignKey => Assert.Equal(DeleteBehavior.Cascade, foreignKey.DeleteBehavior));
 
         Cita conflictingAppointment = new()
         {
