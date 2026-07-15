@@ -4,7 +4,7 @@ namespace CitasApp.Domain.Models
 {
     public class Medico
     {
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Id { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         [StringLength(100)]

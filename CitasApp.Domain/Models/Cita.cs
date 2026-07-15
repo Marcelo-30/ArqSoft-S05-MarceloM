@@ -4,7 +4,7 @@ namespace CitasApp.Domain.Models
 {
     public class Cita
     {
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Id { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El paciente es obligatorio.")]
         public string PacienteId { get; set; } = string.Empty;
