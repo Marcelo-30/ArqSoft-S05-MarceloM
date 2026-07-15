@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Web.Controllers
 {
@@ -13,77 +13,60 @@ namespace CitasApp.Web.Controllers
             _medicoService = medicoService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            var medicos = _medicoService.ObtenerTodos();
+            IReadOnlyList<Medico> medicos = await _medicoService.ObtenerTodosAsync(cancellationToken);
             return View(medicos);
         }
 
-        public IActionResult Detalle(string id)
+        public async Task<IActionResult> Detalle(string id, CancellationToken cancellationToken)
         {
-            var medico = _medicoService.ObtenerPorId(id);
-
-            if (medico == null)
-            {
-                return NotFound();
-            }
-
-            return View(medico);
+            Medico? medico = await _medicoService.ObtenerPorIdAsync(id, cancellationToken);
+            return medico is null ? NotFound() : View(medico);
         }
 
         [HttpGet]
-        public IActionResult Crear()
-        {
-            return View();
-        }
+        public IActionResult Crear() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Crear(Medico medico)
+        public async Task<IActionResult> Crear(Medico medico, CancellationToken cancellationToken)
         {
-            _medicoService.Crear(medico);
-            return RedirectToAction("Index");
+            if (!ModelState.IsValid)
+            {
+                return View(medico);
+            }
+
+            await _medicoService.CrearAsync(medico, cancellationToken);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]
-        public IActionResult Editar(string id)
+        public async Task<IActionResult> Editar(string id, CancellationToken cancellationToken)
         {
-            var medico = _medicoService.ObtenerPorId(id);
-
-            if (medico == null)
-            {
-                return NotFound();
-            }
-
-            return View(medico);
+            Medico? medico = await _medicoService.ObtenerPorIdAsync(id, cancellationToken);
+            return medico is null ? NotFound() : View(medico);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Editar(Medico medico)
+        public async Task<IActionResult> Editar(Medico medico, CancellationToken cancellationToken)
         {
-            var actualizado = _medicoService.Actualizar(medico);
-
-            if (!actualizado)
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                return View(medico);
             }
 
-            return RedirectToAction("Index");
+            bool actualizado = await _medicoService.ActualizarAsync(medico, cancellationToken);
+            return actualizado ? RedirectToAction(nameof(Index)) : NotFound();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Eliminar(string id)
+        public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
-            var eliminado = _medicoService.Eliminar(id);
-
-            if (!eliminado)
-            {
-                return NotFound();
-            }
-
-            return RedirectToAction("Index");
+            bool eliminado = await _medicoService.EliminarAsync(id, cancellationToken);
+            return eliminado ? RedirectToAction(nameof(Index)) : NotFound();
         }
     }
 }

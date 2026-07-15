@@ -24,16 +24,18 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<AgendaMedicoDto>> ObtenerAgenda(string medicoId)
+        public async Task<ActionResult<IReadOnlyList<AgendaMedicoDto>>> ObtenerAgenda(
+            string medicoId,
+            CancellationToken cancellationToken)
         {
-            var medico = _medicoService.ObtenerPorId(medicoId);
+            Medico? medico = await _medicoService.ObtenerPorIdAsync(medicoId, cancellationToken);
 
             if (medico == null)
             {
                 return NotFound(new { mensaje = "No se encontró el médico solicitado." });
             }
 
-            var agenda = ObtenerAgendaMedico(medico)
+            List<AgendaMedicoDto> agenda = (await ObtenerAgendaMedicoAsync(medico, cancellationToken))
                 .OrderBy(c => c.Fecha)
                 .ThenBy(c => c.Hora)
                 .ToList();
@@ -42,17 +44,19 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet("hoy")]
-        public ActionResult<List<AgendaMedicoDto>> ObtenerAgendaDeHoy(string medicoId)
+        public async Task<ActionResult<IReadOnlyList<AgendaMedicoDto>>> ObtenerAgendaDeHoy(
+            string medicoId,
+            CancellationToken cancellationToken)
         {
-            var medico = _medicoService.ObtenerPorId(medicoId);
+            Medico? medico = await _medicoService.ObtenerPorIdAsync(medicoId, cancellationToken);
 
             if (medico == null)
             {
                 return NotFound(new { mensaje = "No se encontró el médico solicitado." });
             }
 
-            var hoy = DateOnly.FromDateTime(DateTime.Today);
-            var agenda = ObtenerAgendaMedico(medico)
+            DateOnly hoy = DateOnly.FromDateTime(DateTime.Today);
+            List<AgendaMedicoDto> agenda = (await ObtenerAgendaMedicoAsync(medico, cancellationToken))
                 .Where(c => c.Fecha == hoy)
                 .OrderBy(c => c.Hora)
                 .ToList();
@@ -61,16 +65,19 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet("fecha/{fecha}")]
-        public ActionResult<List<AgendaMedicoDto>> ObtenerAgendaPorFecha(string medicoId, DateOnly fecha)
+        public async Task<ActionResult<IReadOnlyList<AgendaMedicoDto>>> ObtenerAgendaPorFecha(
+            string medicoId,
+            DateOnly fecha,
+            CancellationToken cancellationToken)
         {
-            var medico = _medicoService.ObtenerPorId(medicoId);
+            Medico? medico = await _medicoService.ObtenerPorIdAsync(medicoId, cancellationToken);
 
             if (medico == null)
             {
                 return NotFound(new { mensaje = "No se encontró el médico solicitado." });
             }
 
-            var agenda = ObtenerAgendaMedico(medico)
+            List<AgendaMedicoDto> agenda = (await ObtenerAgendaMedicoAsync(medico, cancellationToken))
                 .Where(c => c.Fecha == fecha)
                 .OrderBy(c => c.Hora)
                 .ToList();
@@ -78,15 +85,20 @@ namespace CitasApp.Api.Controllers
             return Ok(agenda);
         }
 
-        private IEnumerable<AgendaMedicoDto> ObtenerAgendaMedico(Medico medico)
+        private async Task<IEnumerable<AgendaMedicoDto>> ObtenerAgendaMedicoAsync(
+            Medico medico,
+            CancellationToken cancellationToken)
         {
-            var pacientes = _pacienteService.ObtenerTodos();
+            IReadOnlyList<Paciente> pacientes = await _pacienteService.ObtenerTodosAsync(cancellationToken);
+            Dictionary<string, Paciente> pacientesPorId = pacientes.ToDictionary(paciente => paciente.Id);
+            IReadOnlyList<Cita> citas = await _citaService.ObtenerPorMedicoAsync(
+                medico.Id,
+                cancellationToken);
 
-            return _citaService.ObtenerTodas()
-                .Where(c => c.MedicoId == medico.Id)
+            return citas
                 .Select(c =>
                 {
-                    var paciente = pacientes.FirstOrDefault(p => p.Id == c.PacienteId);
+                    pacientesPorId.TryGetValue(c.PacienteId, out Paciente? paciente);
 
                     return new AgendaMedicoDto
                     {

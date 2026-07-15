@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using CitasApp.Application.Exceptions;
 using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CitasApp.Web.Controllers
 {
@@ -21,105 +22,138 @@ namespace CitasApp.Web.Controllers
             _medicoService = medicoService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            var citas = _citaService.ObtenerTodas();
+            IReadOnlyList<Cita> citas = await _citaService.ObtenerTodasAsync(cancellationToken);
             return View(citas);
         }
 
-        public IActionResult Detalle(string id)
+        public async Task<IActionResult> Detalle(string id, CancellationToken cancellationToken)
         {
-            var cita = _citaService.ObtenerPorId(id);
-
-            if (cita == null)
-            {
-                return NotFound();
-            }
-
-            return View(cita);
+            Cita? cita = await _citaService.ObtenerPorIdAsync(id, cancellationToken);
+            return cita is null ? NotFound() : View(cita);
         }
 
-        public IActionResult PorPaciente(string pacienteId)
+        public async Task<IActionResult> PorPaciente(
+            string pacienteId,
+            CancellationToken cancellationToken)
         {
-            var citasPaciente = _citaService.ObtenerPorPaciente(pacienteId);
-            return View(citasPaciente);
+            IReadOnlyList<Cita> citas = await _citaService.ObtenerPorPacienteAsync(
+                pacienteId,
+                cancellationToken);
+            return View(citas);
         }
 
         [HttpGet]
-        public IActionResult Crear()
+        public async Task<IActionResult> Crear(CancellationToken cancellationToken)
         {
-            CargarListas();
+            await CargarListasAsync(null, null, cancellationToken);
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Crear(Cita cita)
+        public async Task<IActionResult> Crear(Cita cita, CancellationToken cancellationToken)
         {
-            _citaService.Crear(cita);
-            return RedirectToAction("Index");
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    await _citaService.CrearAsync(cita, cancellationToken);
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (ValidacionCitaException exception)
+                {
+                    ModelState.AddModelError(string.Empty, exception.Message);
+                }
+                catch (ConflictoHorarioCitaException exception)
+                {
+                    ModelState.AddModelError(string.Empty, exception.Message);
+                }
+            }
+
+            await CargarListasAsync(cita.PacienteId, cita.MedicoId, cancellationToken);
+            return View(cita);
         }
 
         [HttpGet]
-        public IActionResult Editar(string id)
+        public async Task<IActionResult> Editar(string id, CancellationToken cancellationToken)
         {
-            var cita = _citaService.ObtenerPorId(id);
-
-            if (cita == null)
+            Cita? cita = await _citaService.ObtenerPorIdAsync(id, cancellationToken);
+            if (cita is null)
             {
                 return NotFound();
             }
 
-            CargarListas(cita.PacienteId, cita.MedicoId);
+            await CargarListasAsync(cita.PacienteId, cita.MedicoId, cancellationToken);
             return View(cita);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Editar(Cita cita)
+        public async Task<IActionResult> Editar(Cita cita, CancellationToken cancellationToken)
         {
-            var actualizado = _citaService.Actualizar(cita);
-
-            if (!actualizado)
+            if (ModelState.IsValid)
             {
-                return NotFound();
+                try
+                {
+                    bool actualizado = await _citaService.ActualizarAsync(cita, cancellationToken);
+                    if (!actualizado)
+                    {
+                        return NotFound();
+                    }
+
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (ValidacionCitaException exception)
+                {
+                    ModelState.AddModelError(string.Empty, exception.Message);
+                }
+                catch (ConflictoHorarioCitaException exception)
+                {
+                    ModelState.AddModelError(string.Empty, exception.Message);
+                }
             }
 
-            return RedirectToAction("Index");
+            await CargarListasAsync(cita.PacienteId, cita.MedicoId, cancellationToken);
+            return View(cita);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Eliminar(string id)
+        public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
-            var eliminado = _citaService.Eliminar(id);
-
-            if (!eliminado)
-            {
-                return NotFound();
-            }
-
-            return RedirectToAction("Index");
+            bool eliminado = await _citaService.EliminarAsync(id, cancellationToken);
+            return eliminado ? RedirectToAction(nameof(Index)) : NotFound();
         }
 
-        private void CargarListas(string? pacienteSeleccionado = null, string? medicoSeleccionado = null)
+        private async Task CargarListasAsync(
+            string? pacienteSeleccionado,
+            string? medicoSeleccionado,
+            CancellationToken cancellationToken)
         {
-            var pacientes = _pacienteService.ObtenerTodos();
-            var medicos = _medicoService.ObtenerTodos();
+            IReadOnlyList<Paciente> pacientes = await _pacienteService.ObtenerTodosAsync(cancellationToken);
+            IReadOnlyList<Medico> medicos = await _medicoService.ObtenerTodosAsync(cancellationToken);
 
             ViewBag.Pacientes = new SelectList(
-                pacientes,
+                pacientes.Select(paciente => new
+                {
+                    paciente.Id,
+                    Nombre = $"{paciente.Nombre} {paciente.Apellido}".Trim()
+                }),
                 "Id",
                 "Nombre",
-                pacienteSeleccionado
-            );
+                pacienteSeleccionado);
 
             ViewBag.Medicos = new SelectList(
-                medicos,
+                medicos.Select(medico => new
+                {
+                    medico.Id,
+                    Nombre = $"{medico.Nombre} {medico.Apellido}".Trim()
+                }),
                 "Id",
                 "Nombre",
-                medicoSeleccionado
-            );
+                medicoSeleccionado);
         }
     }
 }

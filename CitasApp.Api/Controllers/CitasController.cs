@@ -1,3 +1,4 @@
+using CitasApp.Application.Exceptions;
 using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -10,113 +11,93 @@ namespace CitasApp.Api.Controllers
     {
         private readonly CitaService _citaService;
         private readonly PacienteService _pacienteService;
-        private readonly MedicoService _medicoService;
 
-        public CitasController(
-            CitaService citaService,
-            PacienteService pacienteService,
-            MedicoService medicoService)
+        public CitasController(CitaService citaService, PacienteService pacienteService)
         {
             _citaService = citaService;
             _pacienteService = pacienteService;
-            _medicoService = medicoService;
         }
 
         [HttpGet]
-        public ActionResult<List<Cita>> ObtenerTodas()
+        public async Task<ActionResult<IReadOnlyList<Cita>>> ObtenerTodas(
+            CancellationToken cancellationToken)
         {
-            var citas = _citaService.ObtenerTodas();
-            return Ok(citas);
+            return Ok(await _citaService.ObtenerTodasAsync(cancellationToken));
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Cita> ObtenerPorId(string id)
+        public async Task<ActionResult<Cita>> ObtenerPorId(
+            string id,
+            CancellationToken cancellationToken)
         {
-            var cita = _citaService.ObtenerPorId(id);
-
-            if (cita == null)
-            {
-                return NotFound(new { mensaje = $"No se encontró la cita con id {id}." });
-            }
-
-            return Ok(cita);
+            Cita? cita = await _citaService.ObtenerPorIdAsync(id, cancellationToken);
+            return cita is null
+                ? NotFound(new { mensaje = $"No se encontro la cita con id {id}." })
+                : Ok(cita);
         }
 
         [HttpGet("paciente/{pacienteId}")]
-        public ActionResult<List<Cita>> ObtenerPorPaciente(string pacienteId)
+        public async Task<ActionResult<IReadOnlyList<Cita>>> ObtenerPorPaciente(
+            string pacienteId,
+            CancellationToken cancellationToken)
         {
-            var paciente = _pacienteService.ObtenerPorId(pacienteId);
-
-            if (paciente == null)
+            if (await _pacienteService.ObtenerPorIdAsync(pacienteId, cancellationToken) is null)
             {
-                return NotFound(new { mensaje = $"No se encontró el paciente con id {pacienteId}." });
+                return NotFound(new { mensaje = $"No se encontro el paciente con id {pacienteId}." });
             }
 
-            var citas = _citaService.ObtenerPorPaciente(pacienteId);
-            return Ok(citas);
+            return Ok(await _citaService.ObtenerPorPacienteAsync(pacienteId, cancellationToken));
         }
 
         [HttpPost]
-        public ActionResult<Cita> Crear(Cita cita)
+        public async Task<ActionResult<Cita>> Crear(Cita cita, CancellationToken cancellationToken)
         {
-            var error = ValidarPacienteYMedico(cita.PacienteId, cita.MedicoId);
-
-            if (error != null)
+            try
             {
-                return error;
+                await _citaService.CrearAsync(cita, cancellationToken);
+                return CreatedAtAction(nameof(ObtenerPorId), new { id = cita.Id }, cita);
             }
-
-            _citaService.Crear(cita);
-            return CreatedAtAction(nameof(ObtenerPorId), new { id = cita.Id }, cita);
+            catch (ValidacionCitaException exception)
+            {
+                return BadRequest(new { mensaje = exception.Message });
+            }
+            catch (ConflictoHorarioCitaException exception)
+            {
+                return Conflict(new { mensaje = exception.Message });
+            }
         }
 
         [HttpPut("{id}")]
-        public IActionResult Actualizar(string id, Cita cita)
+        public async Task<IActionResult> Actualizar(
+            string id,
+            Cita cita,
+            CancellationToken cancellationToken)
         {
-            var error = ValidarPacienteYMedico(cita.PacienteId, cita.MedicoId);
-
-            if (error != null)
-            {
-                return error;
-            }
-
             cita.Id = id;
-            var actualizado = _citaService.Actualizar(cita);
-
-            if (!actualizado)
+            try
             {
-                return NotFound(new { mensaje = $"No se encontró la cita con id {id}." });
+                bool actualizado = await _citaService.ActualizarAsync(cita, cancellationToken);
+                return actualizado
+                    ? NoContent()
+                    : NotFound(new { mensaje = $"No se encontro la cita con id {id}." });
             }
-
-            return NoContent();
+            catch (ValidacionCitaException exception)
+            {
+                return BadRequest(new { mensaje = exception.Message });
+            }
+            catch (ConflictoHorarioCitaException exception)
+            {
+                return Conflict(new { mensaje = exception.Message });
+            }
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Eliminar(string id)
+        public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
-            var eliminado = _citaService.Eliminar(id);
-
-            if (!eliminado)
-            {
-                return NotFound(new { mensaje = $"No se encontró la cita con id {id}." });
-            }
-
-            return NoContent();
-        }
-
-        private ActionResult? ValidarPacienteYMedico(string pacienteId, string medicoId)
-        {
-            if (_pacienteService.ObtenerPorId(pacienteId) == null)
-            {
-                return NotFound(new { mensaje = $"No se encontró el paciente con id {pacienteId}." });
-            }
-
-            if (_medicoService.ObtenerPorId(medicoId) == null)
-            {
-                return NotFound(new { mensaje = $"No se encontró el médico con id {medicoId}." });
-            }
-
-            return null;
+            bool eliminado = await _citaService.EliminarAsync(id, cancellationToken);
+            return eliminado
+                ? NoContent()
+                : NotFound(new { mensaje = $"No se encontro la cita con id {id}." });
         }
     }
 }

@@ -3,55 +3,76 @@ using CitasApp.Domain.Models;
 
 namespace CitasApp.Infrastructure.Repositories
 {
-    public class MemoriaPacienteRepository : IPacienteRepository
+    public sealed class MemoriaPacienteRepository : IPacienteRepository
     {
-        private readonly List<Paciente> _pacientes = new()
-        {
-            new Paciente
-            {
-                Id = "P1",
-                Nombre = "Carlos",
-                Apellido = "Ramírez",
-                Email = "carlos.ramirez@gmail.com",
-                Telefono = "9991234567"
-            },
-            new Paciente
-            {
-                Id = "P2",
-                Nombre = "Ana",
-                Apellido = "López",
-                Email = "ana.lopez@gmail.com",
-                Telefono = "9997654321"
-            },
-            new Paciente
-            {
-                Id = "P3",
-                Nombre = "Luis",
-                Apellido = "Martínez",
-                Email = "luis.martinez@gmail.com",
-                Telefono = "9991112233"
-            },
-            new Paciente
-            {
-                Id = "P4",
-                Nombre = "María",
-                Apellido = "Gómez",
-                Email = "maria.gomez@gmail.com",
-                Telefono = "9994445566"
-            }
-        };
+        private readonly Lock _lock = new();
+        private readonly List<Paciente> _pacientes =
+        [
+            new() { Id = "P1", Nombre = "Carlos", Apellido = "Ramirez", Email = "carlos.ramirez@gmail.com", Telefono = "9991234567" },
+            new() { Id = "P2", Nombre = "Ana", Apellido = "Lopez", Email = "ana.lopez@gmail.com", Telefono = "9997654321" },
+            new() { Id = "P3", Nombre = "Luis", Apellido = "Martinez", Email = "luis.martinez@gmail.com", Telefono = "9991112233" },
+            new() { Id = "P4", Nombre = "Maria", Apellido = "Gomez", Email = "maria.gomez@gmail.com", Telefono = "9994445566" }
+        ];
 
-        public List<Paciente> Leer()
+        public Task<IReadOnlyList<Paciente>> ObtenerTodosAsync(
+            CancellationToken cancellationToken = default)
         {
-            return _pacientes
-                .Select(Copiar)
-                .ToList();
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_lock)
+            {
+                IReadOnlyList<Paciente> resultado = _pacientes.Select(Copiar).ToList();
+                return Task.FromResult(resultado);
+            }
         }
 
-        public void Guardar(List<Paciente> datos)
+        public Task<Paciente?> ObtenerPorIdAsync(
+            string id,
+            CancellationToken cancellationToken = default)
         {
-            _pacientes.Clear();
-            _pacientes.AddRange(datos.Select(Copiar));
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_lock)
+            {
+                Paciente? paciente = _pacientes.FirstOrDefault(actual => actual.Id == id);
+                return Task.FromResult(paciente is null ? null : Copiar(paciente));
+            }
+        }
+
+        public Task AgregarAsync(Paciente paciente, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_lock)
+            {
+                _pacientes.Add(Copiar(paciente));
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> ActualizarAsync(
+            Paciente paciente,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_lock)
+            {
+                int indice = _pacientes.FindIndex(actual => actual.Id == paciente.Id);
+                if (indice < 0)
+                {
+                    return Task.FromResult(false);
+                }
+
+                _pacientes[indice] = Copiar(paciente);
+                return Task.FromResult(true);
+            }
+        }
+
+        public Task<bool> EliminarAsync(string id, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_lock)
+            {
+                return Task.FromResult(_pacientes.RemoveAll(paciente => paciente.Id == id) > 0);
+            }
         }
 
         private static Paciente Copiar(Paciente paciente)

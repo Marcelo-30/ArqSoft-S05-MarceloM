@@ -1,100 +1,135 @@
+using CitasApp.Application.Exceptions;
 using CitasApp.Domain.Interfaces;
 using CitasApp.Domain.Models;
 
 namespace CitasApp.Application.Services
 {
-    public class CitaService
+    public sealed class CitaService
     {
         private readonly ICitaRepository _citaRepository;
+        private readonly IPacienteRepository _pacienteRepository;
+        private readonly IMedicoRepository _medicoRepository;
 
-        public CitaService(ICitaRepository citaRepository)
+        public CitaService(
+            ICitaRepository citaRepository,
+            IPacienteRepository pacienteRepository,
+            IMedicoRepository medicoRepository)
         {
             _citaRepository = citaRepository;
+            _pacienteRepository = pacienteRepository;
+            _medicoRepository = medicoRepository;
         }
 
-        public List<Cita> ObtenerTodas()
+        public Task<IReadOnlyList<Cita>> ObtenerTodasAsync(
+            CancellationToken cancellationToken = default)
         {
-            return _citaRepository.Leer();
+            return _citaRepository.ObtenerTodasAsync(cancellationToken);
         }
 
-        public Cita? ObtenerPorId(string id)
+        public Task<Cita?> ObtenerPorIdAsync(
+            string id,
+            CancellationToken cancellationToken = default)
         {
-            return _citaRepository.Leer()
-                .FirstOrDefault(c => c.Id == id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            return _citaRepository.ObtenerPorIdAsync(id, cancellationToken);
         }
 
-        public List<Cita> ObtenerPorPaciente(string pacienteId)
+        public Task<IReadOnlyList<Cita>> ObtenerPorPacienteAsync(
+            string pacienteId,
+            CancellationToken cancellationToken = default)
         {
-            return _citaRepository.Leer()
-                .Where(c => c.PacienteId == pacienteId)
-                .ToList();
+            ArgumentException.ThrowIfNullOrWhiteSpace(pacienteId);
+            return _citaRepository.ObtenerPorPacienteAsync(pacienteId, cancellationToken);
         }
 
-        public void Crear(Cita cita)
+        public Task<IReadOnlyList<Cita>> ObtenerPorMedicoAsync(
+            string medicoId,
+            CancellationToken cancellationToken = default)
         {
-            var citas = _citaRepository.Leer();
+            ArgumentException.ThrowIfNullOrWhiteSpace(medicoId);
+            return _citaRepository.ObtenerPorMedicoAsync(medicoId, cancellationToken);
+        }
 
-            cita.Id = GenerarSiguienteId(citas);
+        public async Task CrearAsync(Cita cita, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(cita);
 
-            if (string.IsNullOrWhiteSpace(cita.Estado))
+            cita.Id = Guid.NewGuid().ToString();
+            cita.Estado = NormalizarEstado(cita.Estado);
+
+            await ValidarAsync(cita, null, cancellationToken);
+            await _citaRepository.AgregarAsync(cita, cancellationToken);
+        }
+
+        public async Task<bool> ActualizarAsync(
+            Cita cita,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(cita);
+            ArgumentException.ThrowIfNullOrWhiteSpace(cita.Id);
+
+            cita.Estado = NormalizarEstado(cita.Estado);
+            await ValidarAsync(cita, cita.Id, cancellationToken);
+
+            return await _citaRepository.ActualizarAsync(cita, cancellationToken);
+        }
+
+        public Task<bool> EliminarAsync(
+            string id,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            return _citaRepository.EliminarAsync(id, cancellationToken);
+        }
+
+        private async Task ValidarAsync(
+            Cita cita,
+            string? citaIdExcluida,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(cita.PacienteId) ||
+                await _pacienteRepository.ObtenerPorIdAsync(cita.PacienteId, cancellationToken) is null)
             {
-                cita.Estado = "Pendiente";
+                throw new ValidacionCitaException("El paciente seleccionado no existe.");
             }
 
-            citas.Add(cita);
-            _citaRepository.Guardar(citas);
-        }
-
-        public bool Actualizar(Cita cita)
-        {
-            var citas = _citaRepository.Leer();
-            var citaExistente = citas.FirstOrDefault(c => c.Id == cita.Id);
-
-            if (citaExistente == null)
+            if (string.IsNullOrWhiteSpace(cita.MedicoId) ||
+                await _medicoRepository.ObtenerPorIdAsync(cita.MedicoId, cancellationToken) is null)
             {
-                return false;
+                throw new ValidacionCitaException("El medico seleccionado no existe.");
             }
 
-            citaExistente.PacienteId = cita.PacienteId;
-            citaExistente.MedicoId = cita.MedicoId;
-            citaExistente.Fecha = cita.Fecha;
-            citaExistente.Hora = cita.Hora;
-            citaExistente.Motivo = cita.Motivo;
-            citaExistente.Estado = string.IsNullOrWhiteSpace(cita.Estado)
-                ? "Pendiente"
-                : cita.Estado;
-
-            _citaRepository.Guardar(citas);
-
-            return true;
-        }
-
-        public bool Eliminar(string id)
-        {
-            var citas = _citaRepository.Leer();
-            var cita = citas.FirstOrDefault(c => c.Id == id);
-
-            if (cita == null)
+            if (cita.Fecha == default)
             {
-                return false;
+                throw new ValidacionCitaException("La fecha de la cita es obligatoria.");
             }
 
-            citas.Remove(cita);
-            _citaRepository.Guardar(citas);
+            if (!EstadosCita.Todos.Contains(cita.Estado))
+            {
+                throw new ValidacionCitaException("El estado de la cita no es valido.");
+            }
 
-            return true;
+            if (await _citaRepository.ExisteEnHorarioAsync(
+                cita.MedicoId,
+                cita.Fecha,
+                cita.Hora,
+                citaIdExcluida,
+                cancellationToken))
+            {
+                throw new ConflictoHorarioCitaException();
+            }
         }
 
-        private static string GenerarSiguienteId(List<Cita> citas)
+        private static string NormalizarEstado(string estado)
         {
-            var ultimoNumero = citas
-                .Select(c => c.Id)
-                .Where(id => !string.IsNullOrWhiteSpace(id) && id.StartsWith("C"))
-                .Select(id => int.TryParse(id[1..], out var numero) ? numero : 0)
-                .DefaultIfEmpty(0)
-                .Max();
+            if (string.IsNullOrWhiteSpace(estado))
+            {
+                return EstadosCita.Pendiente;
+            }
 
-            return $"C{ultimoNumero + 1}";
+            return EstadosCita.Todos.FirstOrDefault(
+                estadoValido => estadoValido.Equals(estado.Trim(), StringComparison.OrdinalIgnoreCase))
+                ?? estado.Trim();
         }
     }
 }

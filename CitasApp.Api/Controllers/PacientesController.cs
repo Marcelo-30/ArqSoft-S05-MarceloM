@@ -1,4 +1,4 @@
-﻿using CitasApp.Application.Services;
+using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,58 +16,52 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<Paciente>> ObtenerTodos()
+        public async Task<ActionResult<IReadOnlyList<Paciente>>> ObtenerTodos(
+            CancellationToken cancellationToken)
         {
-            var pacientes = _pacienteService.ObtenerTodos();
-            return Ok(pacientes);
+            return Ok(await _pacienteService.ObtenerTodosAsync(cancellationToken));
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Paciente> ObtenerPorId(string id)
+        public async Task<ActionResult<Paciente>> ObtenerPorId(
+            string id,
+            CancellationToken cancellationToken)
         {
-            var paciente = _pacienteService.ObtenerPorId(id);
-
-            if (paciente == null)
-            {
-                return NotFound(new { mensaje = $"No se encontró el paciente con id {id}." });
-            }
-
-            return Ok(paciente);
+            Paciente? paciente = await _pacienteService.ObtenerPorIdAsync(id, cancellationToken);
+            return paciente is null
+                ? NotFound(new { mensaje = $"No se encontro el paciente con id {id}." })
+                : Ok(paciente);
         }
 
         [HttpPost]
-        public ActionResult<Paciente> Crear(Paciente paciente)
+        public async Task<ActionResult<Paciente>> Crear(
+            Paciente paciente,
+            CancellationToken cancellationToken)
         {
-            _pacienteService.Crear(paciente);
+            await _pacienteService.CrearAsync(paciente, cancellationToken);
             return CreatedAtAction(nameof(ObtenerPorId), new { id = paciente.Id }, paciente);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Actualizar(string id, Paciente paciente)
+        public async Task<IActionResult> Actualizar(
+            string id,
+            Paciente paciente,
+            CancellationToken cancellationToken)
         {
             paciente.Id = id;
-
-            var actualizado = _pacienteService.Actualizar(paciente);
-
-            if (!actualizado)
-            {
-                return NotFound(new { mensaje = $"No se encontró el paciente con id {id}." });
-            }
-
-            return NoContent();
+            bool actualizado = await _pacienteService.ActualizarAsync(paciente, cancellationToken);
+            return actualizado
+                ? NoContent()
+                : NotFound(new { mensaje = $"No se encontro el paciente con id {id}." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Eliminar(string id)
+        public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
-            var eliminado = _pacienteService.Eliminar(id);
-
-            if (!eliminado)
-            {
-                return NotFound(new { mensaje = $"No se encontró el paciente con id {id}." });
-            }
-
-            return NoContent();
+            bool eliminado = await _pacienteService.EliminarAsync(id, cancellationToken);
+            return eliminado
+                ? NoContent()
+                : NotFound(new { mensaje = $"No se encontro el paciente con id {id}." });
         }
     }
 }

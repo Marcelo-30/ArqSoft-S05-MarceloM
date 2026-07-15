@@ -16,57 +16,52 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<Medico>> ObtenerTodos()
+        public async Task<ActionResult<IReadOnlyList<Medico>>> ObtenerTodos(
+            CancellationToken cancellationToken)
         {
-            var medicos = _medicoService.ObtenerTodos();
-            return Ok(medicos);
+            return Ok(await _medicoService.ObtenerTodosAsync(cancellationToken));
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Medico> ObtenerPorId(string id)
+        public async Task<ActionResult<Medico>> ObtenerPorId(
+            string id,
+            CancellationToken cancellationToken)
         {
-            var medico = _medicoService.ObtenerPorId(id);
-
-            if (medico == null)
-            {
-                return NotFound(new { mensaje = $"No se encontró el médico con id {id}." });
-            }
-
-            return Ok(medico);
+            Medico? medico = await _medicoService.ObtenerPorIdAsync(id, cancellationToken);
+            return medico is null
+                ? NotFound(new { mensaje = $"No se encontro el medico con id {id}." })
+                : Ok(medico);
         }
 
         [HttpPost]
-        public ActionResult<Medico> Crear(Medico medico)
+        public async Task<ActionResult<Medico>> Crear(
+            Medico medico,
+            CancellationToken cancellationToken)
         {
-            _medicoService.Crear(medico);
+            await _medicoService.CrearAsync(medico, cancellationToken);
             return CreatedAtAction(nameof(ObtenerPorId), new { id = medico.Id }, medico);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Actualizar(string id, Medico medico)
+        public async Task<IActionResult> Actualizar(
+            string id,
+            Medico medico,
+            CancellationToken cancellationToken)
         {
             medico.Id = id;
-            var actualizado = _medicoService.Actualizar(medico);
-
-            if (!actualizado)
-            {
-                return NotFound(new { mensaje = $"No se encontró el médico con id {id}." });
-            }
-
-            return NoContent();
+            bool actualizado = await _medicoService.ActualizarAsync(medico, cancellationToken);
+            return actualizado
+                ? NoContent()
+                : NotFound(new { mensaje = $"No se encontro el medico con id {id}." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Eliminar(string id)
+        public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
-            var eliminado = _medicoService.Eliminar(id);
-
-            if (!eliminado)
-            {
-                return NotFound(new { mensaje = $"No se encontró el médico con id {id}." });
-            }
-
-            return NoContent();
+            bool eliminado = await _medicoService.EliminarAsync(id, cancellationToken);
+            return eliminado
+                ? NoContent()
+                : NotFound(new { mensaje = $"No se encontro el medico con id {id}." });
         }
     }
 }

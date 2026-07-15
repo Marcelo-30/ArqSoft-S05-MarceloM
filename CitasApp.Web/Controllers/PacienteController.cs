@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Web.Controllers
 {
@@ -13,77 +13,60 @@ namespace CitasApp.Web.Controllers
             _pacienteService = pacienteService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            var pacientes = _pacienteService.ObtenerTodos();
+            IReadOnlyList<Paciente> pacientes = await _pacienteService.ObtenerTodosAsync(cancellationToken);
             return View(pacientes);
         }
 
-        public IActionResult Detalle(string id)
+        public async Task<IActionResult> Detalle(string id, CancellationToken cancellationToken)
         {
-            var paciente = _pacienteService.ObtenerPorId(id);
-
-            if (paciente == null)
-            {
-                return NotFound();
-            }
-
-            return View(paciente);
+            Paciente? paciente = await _pacienteService.ObtenerPorIdAsync(id, cancellationToken);
+            return paciente is null ? NotFound() : View(paciente);
         }
 
         [HttpGet]
-        public IActionResult Crear()
-        {
-            return View();
-        }
+        public IActionResult Crear() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Crear(Paciente paciente)
+        public async Task<IActionResult> Crear(Paciente paciente, CancellationToken cancellationToken)
         {
-            _pacienteService.Crear(paciente);
-            return RedirectToAction("Index");
+            if (!ModelState.IsValid)
+            {
+                return View(paciente);
+            }
+
+            await _pacienteService.CrearAsync(paciente, cancellationToken);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]
-        public IActionResult Editar(string id)
+        public async Task<IActionResult> Editar(string id, CancellationToken cancellationToken)
         {
-            var paciente = _pacienteService.ObtenerPorId(id);
-
-            if (paciente == null)
-            {
-                return NotFound();
-            }
-
-            return View(paciente);
+            Paciente? paciente = await _pacienteService.ObtenerPorIdAsync(id, cancellationToken);
+            return paciente is null ? NotFound() : View(paciente);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Editar(Paciente paciente)
+        public async Task<IActionResult> Editar(Paciente paciente, CancellationToken cancellationToken)
         {
-            var actualizado = _pacienteService.Actualizar(paciente);
-
-            if (!actualizado)
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                return View(paciente);
             }
 
-            return RedirectToAction("Index");
+            bool actualizado = await _pacienteService.ActualizarAsync(paciente, cancellationToken);
+            return actualizado ? RedirectToAction(nameof(Index)) : NotFound();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Eliminar(string id)
+        public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
-            var eliminado = _pacienteService.Eliminar(id);
-
-            if (!eliminado)
-            {
-                return NotFound();
-            }
-
-            return RedirectToAction("Index");
+            bool eliminado = await _pacienteService.EliminarAsync(id, cancellationToken);
+            return eliminado ? RedirectToAction(nameof(Index)) : NotFound();
         }
     }
 }

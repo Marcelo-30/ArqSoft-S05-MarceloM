@@ -3,7 +3,7 @@ using CitasApp.Domain.Models;
 
 namespace CitasApp.Application.Services
 {
-    public class MedicoService
+    public sealed class MedicoService
     {
         private readonly IMedicoRepository _medicoRepository;
         private readonly ICitaRepository _citaRepository;
@@ -16,80 +16,49 @@ namespace CitasApp.Application.Services
             _citaRepository = citaRepository;
         }
 
-        public List<Medico> ObtenerTodos()
+        public Task<IReadOnlyList<Medico>> ObtenerTodosAsync(
+            CancellationToken cancellationToken = default)
         {
-            return _medicoRepository.Leer();
+            return _medicoRepository.ObtenerTodosAsync(cancellationToken);
         }
 
-        public Medico? ObtenerPorId(string id)
+        public Task<Medico?> ObtenerPorIdAsync(
+            string id,
+            CancellationToken cancellationToken = default)
         {
-            return _medicoRepository.Leer()
-                .FirstOrDefault(m => m.Id == id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            return _medicoRepository.ObtenerPorIdAsync(id, cancellationToken);
         }
 
-        public void Crear(Medico medico)
+        public Task CrearAsync(Medico medico, CancellationToken cancellationToken = default)
         {
-            var medicos = _medicoRepository.Leer();
-
-            medico.Id = GenerarSiguienteId(medicos);
-            medicos.Add(medico);
-
-            _medicoRepository.Guardar(medicos);
+            ArgumentNullException.ThrowIfNull(medico);
+            medico.Id = Guid.NewGuid().ToString();
+            return _medicoRepository.AgregarAsync(medico, cancellationToken);
         }
 
-        public bool Actualizar(Medico medico)
+        public Task<bool> ActualizarAsync(
+            Medico medico,
+            CancellationToken cancellationToken = default)
         {
-            var medicos = _medicoRepository.Leer();
-            var medicoExistente = medicos.FirstOrDefault(m => m.Id == medico.Id);
+            ArgumentNullException.ThrowIfNull(medico);
+            ArgumentException.ThrowIfNullOrWhiteSpace(medico.Id);
+            return _medicoRepository.ActualizarAsync(medico, cancellationToken);
+        }
 
-            if (medicoExistente == null)
+        public async Task<bool> EliminarAsync(
+            string id,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+
+            if (await _medicoRepository.ObtenerPorIdAsync(id, cancellationToken) is null)
             {
                 return false;
             }
 
-            medicoExistente.Nombre = medico.Nombre;
-            medicoExistente.Apellido = medico.Apellido;
-            medicoExistente.Especialidad = medico.Especialidad;
-            medicoExistente.NumeroLicencia = medico.NumeroLicencia;
-
-            _medicoRepository.Guardar(medicos);
-
-            return true;
-        }
-
-        public bool Eliminar(string id)
-        {
-            var medicos = _medicoRepository.Leer();
-            var medico = medicos.FirstOrDefault(m => m.Id == id);
-
-            if (medico == null)
-            {
-                return false;
-            }
-
-            medicos.Remove(medico);
-            _medicoRepository.Guardar(medicos);
-
-            var citas = _citaRepository.Leer();
-            var citasActualizadas = citas
-                .Where(c => c.MedicoId != id)
-                .ToList();
-
-            _citaRepository.Guardar(citasActualizadas);
-
-            return true;
-        }
-
-        private static string GenerarSiguienteId(List<Medico> medicos)
-        {
-            var ultimoNumero = medicos
-                .Select(m => m.Id)
-                .Where(id => !string.IsNullOrWhiteSpace(id) && id.StartsWith("M"))
-                .Select(id => int.TryParse(id[1..], out var numero) ? numero : 0)
-                .DefaultIfEmpty(0)
-                .Max();
-
-            return $"M{ultimoNumero + 1}";
+            await _citaRepository.EliminarPorMedicoAsync(id, cancellationToken);
+            return await _medicoRepository.EliminarAsync(id, cancellationToken);
         }
     }
 }

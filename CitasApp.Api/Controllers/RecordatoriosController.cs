@@ -1,5 +1,6 @@
 using CitasApp.Api.Dtos;
 using CitasApp.Application.Services;
+using CitasApp.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Api.Controllers
@@ -23,7 +24,9 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet("pendientes")]
-        public ActionResult<List<RecordatorioWhatsappDto>> ObtenerRecordatoriosPendientes([FromQuery] int dias = 1)
+        public async Task<ActionResult<IReadOnlyList<RecordatorioWhatsappDto>>> ObtenerRecordatoriosPendientes(
+            [FromQuery] int dias = 1,
+            CancellationToken cancellationToken = default)
         {
             if (dias < 0)
             {
@@ -33,7 +36,7 @@ namespace CitasApp.Api.Controllers
             var hoy = DateOnly.FromDateTime(DateTime.Today);
             var fechaLimite = hoy.AddDays(dias);
 
-            var recordatorios = CrearRecordatorios()
+            List<RecordatorioWhatsappDto> recordatorios = (await CrearRecordatoriosAsync(cancellationToken))
                 .Where(r => r.Fecha >= hoy && r.Fecha <= fechaLimite)
                 .Where(r => !string.Equals(r.Estado, "Cancelada", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(r => r.Fecha)
@@ -44,9 +47,11 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpPost("whatsapp/{citaId}")]
-        public ActionResult<EnviarWhatsappResponseDto> EnviarRecordatorioWhatsapp(string citaId)
+        public async Task<ActionResult<EnviarWhatsappResponseDto>> EnviarRecordatorioWhatsapp(
+            string citaId,
+            CancellationToken cancellationToken)
         {
-            var recordatorio = CrearRecordatorios()
+            RecordatorioWhatsappDto? recordatorio = (await CrearRecordatoriosAsync(cancellationToken))
                 .FirstOrDefault(r => r.CitaId == citaId);
 
             if (recordatorio == null)
@@ -73,16 +78,20 @@ namespace CitasApp.Api.Controllers
             return Ok(respuesta);
         }
 
-        private IEnumerable<RecordatorioWhatsappDto> CrearRecordatorios()
+        private async Task<IEnumerable<RecordatorioWhatsappDto>> CrearRecordatoriosAsync(
+            CancellationToken cancellationToken)
         {
-            var pacientes = _pacienteService.ObtenerTodos();
-            var medicos = _medicoService.ObtenerTodos();
+            IReadOnlyList<Paciente> pacientes = await _pacienteService.ObtenerTodosAsync(cancellationToken);
+            IReadOnlyList<Medico> medicos = await _medicoService.ObtenerTodosAsync(cancellationToken);
+            IReadOnlyList<Cita> citas = await _citaService.ObtenerTodasAsync(cancellationToken);
+            Dictionary<string, Paciente> pacientesPorId = pacientes.ToDictionary(paciente => paciente.Id);
+            Dictionary<string, Medico> medicosPorId = medicos.ToDictionary(medico => medico.Id);
 
-            return _citaService.ObtenerTodas()
+            return citas
                 .Select(cita =>
                 {
-                    var paciente = pacientes.FirstOrDefault(p => p.Id == cita.PacienteId);
-                    var medico = medicos.FirstOrDefault(m => m.Id == cita.MedicoId);
+                    pacientesPorId.TryGetValue(cita.PacienteId, out Paciente? paciente);
+                    medicosPorId.TryGetValue(cita.MedicoId, out Medico? medico);
 
                     var pacienteNombre = paciente == null
                         ? "Paciente no encontrado"
