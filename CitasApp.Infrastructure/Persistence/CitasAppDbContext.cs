@@ -1,12 +1,13 @@
-﻿using CitasApp.Domain.Models;
+using CitasApp.Domain.Models;
+using CitasApp.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CitasApp.Infrastructure.Persistence
 {
-    public sealed class CitasAppDbContext : DbContext
+    public sealed class CitasAppDbContext : IdentityDbContext<ApplicationUser>
     {
-        public CitasAppDbContext(
-            DbContextOptions<CitasAppDbContext> options)
+        public CitasAppDbContext(DbContextOptions<CitasAppDbContext> options)
             : base(options)
         {
         }
@@ -24,6 +25,7 @@ namespace CitasApp.Infrastructure.Persistence
             ConfigurarPaciente(modelBuilder);
             ConfigurarMedico(modelBuilder);
             ConfigurarCita(modelBuilder);
+            ConfigurarApplicationUser(modelBuilder);
         }
 
         private static void ConfigurarPaciente(ModelBuilder modelBuilder)
@@ -31,7 +33,6 @@ namespace CitasApp.Infrastructure.Persistence
             modelBuilder.Entity<Paciente>(entity =>
             {
                 entity.ToTable("pacientes");
-
                 entity.HasKey(paciente => paciente.Id);
 
                 entity.Property(paciente => paciente.Id)
@@ -59,8 +60,7 @@ namespace CitasApp.Infrastructure.Persistence
                     .HasMaxLength(20)
                     .IsRequired();
 
-                entity.HasIndex(paciente => paciente.Email)
-                    .IsUnique();
+                entity.HasIndex(paciente => paciente.Email).IsUnique();
             });
         }
 
@@ -69,7 +69,6 @@ namespace CitasApp.Infrastructure.Persistence
             modelBuilder.Entity<Medico>(entity =>
             {
                 entity.ToTable("medicos");
-
                 entity.HasKey(medico => medico.Id);
 
                 entity.Property(medico => medico.Id)
@@ -97,8 +96,7 @@ namespace CitasApp.Infrastructure.Persistence
                     .HasMaxLength(50)
                     .IsRequired();
 
-                entity.HasIndex(medico => medico.NumeroLicencia)
-                    .IsUnique();
+                entity.HasIndex(medico => medico.NumeroLicencia).IsUnique();
             });
         }
 
@@ -107,7 +105,6 @@ namespace CitasApp.Infrastructure.Persistence
             modelBuilder.Entity<Cita>(entity =>
             {
                 entity.ToTable("citas");
-
                 entity.HasKey(cita => cita.Id);
 
                 entity.Property(cita => cita.Id)
@@ -156,8 +153,30 @@ namespace CitasApp.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(cita => cita.PacienteId);
-
                 entity.HasIndex(cita => cita.MedicoId);
+
+                entity.HasIndex(cita => new { cita.MedicoId, cita.Fecha, cita.Hora })
+                    .IsUnique()
+                    .HasFilter("estado <> 'Cancelada'");
+            });
+        }
+
+        private static void ConfigurarApplicationUser(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ApplicationUser>(entity =>
+            {
+                entity.Property(user => user.MedicoId)
+                    .HasColumnName("medico_id")
+                    .HasMaxLength(36);
+
+                entity.HasOne<Medico>()
+                    .WithOne()
+                    .HasForeignKey<ApplicationUser>(user => user.MedicoId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(user => user.MedicoId)
+                    .IsUnique()
+                    .HasFilter("medico_id IS NOT NULL");
             });
         }
     }

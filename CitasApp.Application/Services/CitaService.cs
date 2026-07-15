@@ -109,7 +109,8 @@ namespace CitasApp.Application.Services
                 throw new ValidacionCitaException("El estado de la cita no es valido.");
             }
 
-            if (await _citaRepository.ExisteEnHorarioAsync(
+            if (!cita.Estado.Equals(EstadosCita.Cancelada, StringComparison.OrdinalIgnoreCase) &&
+                await _citaRepository.ExisteEnHorarioAsync(
                 cita.MedicoId,
                 cita.Fecha,
                 cita.Hora,

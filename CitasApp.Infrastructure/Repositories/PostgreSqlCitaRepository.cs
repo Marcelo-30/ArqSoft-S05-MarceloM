@@ -58,6 +58,7 @@ namespace CitasApp.Infrastructure.Repositories
                 cita => cita.MedicoId == medicoId &&
                     cita.Fecha == fecha &&
                     cita.Hora == hora &&
+                    cita.Estado != EstadosCita.Cancelada &&
                     (citaIdExcluida == null || cita.Id != citaIdExcluida),
                 cancellationToken);
         }

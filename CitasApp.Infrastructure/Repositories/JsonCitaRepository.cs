@@ -50,6 +50,7 @@ namespace CitasApp.Infrastructure.Repositories
                 cita => cita.MedicoId == medicoId &&
                     cita.Fecha == fecha &&
                     cita.Hora == hora &&
+                    !cita.Estado.Equals(EstadosCita.Cancelada, StringComparison.OrdinalIgnoreCase) &&
                     (citaIdExcluida is null || cita.Id != citaIdExcluida));
         }
 
