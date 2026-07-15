@@ -18,6 +18,7 @@ PostgreSQL es el adaptador activo y se registra con alcance `Scoped`. Los adapta
 - .NET SDK 10.
 - PostgreSQL accesible desde los dos hosts.
 - `dotnet-ef` 10 para administrar migraciones.
+- Certificado HTTPS local confiable (`dotnet dev-certs https --trust`) para probar login y JWT.
 
 Si `dotnet ef` no esta disponible:
 
@@ -93,18 +94,18 @@ Un usuario con rol `Medico` requiere una relacion explicita con un registro `Med
 ```powershell
 dotnet restore CitasApp.slnx
 dotnet build CitasApp.slnx --no-restore
-dotnet run --project CitasApp.Web
+dotnet run --project CitasApp.Web --launch-profile https
 ```
 
-La Web usa `http://localhost:5261` en el perfil HTTP. El login esta en `/Cuenta/IniciarSesion` y el cierre de sesion aparece en la navegacion para usuarios autenticados.
+La Web usa `https://localhost:7138`. El login esta en `/Cuenta/IniciarSesion` y el cierre de sesion aparece en la navegacion para usuarios autenticados. HTTPS es necesario porque la cookie se emite siempre con el atributo `Secure`.
 
 En otra terminal:
 
 ```powershell
-dotnet run --project CitasApp.Api
+dotnet run --project CitasApp.Api --launch-profile https
 ```
 
-La API usa `http://localhost:5088` en el perfil HTTP.
+La API usa `https://localhost:7099`.
 
 ## Probar login y JWT
 
@@ -118,12 +119,12 @@ $body = @{
 
 $login = Invoke-RestMethod `
   -Method Post `
-  -Uri "http://localhost:5088/api/auth/login" `
+  -Uri "https://localhost:7099/api/auth/login" `
   -ContentType "application/json" `
   -Body $body
 
 $headers = @{ Authorization = "Bearer $($login.token)" }
-Invoke-RestMethod -Uri "http://localhost:5088/api/pacientes" -Headers $headers
+Invoke-RestMethod -Uri "https://localhost:7099/api/pacientes" -Headers $headers
 ```
 
 En Postman seleccione `Authorization > Bearer Token` y use el valor `token` de la respuesta. No incluya la palabra `Bearer` dentro del campo de token. La API no habilita Swagger UI actualmente.
