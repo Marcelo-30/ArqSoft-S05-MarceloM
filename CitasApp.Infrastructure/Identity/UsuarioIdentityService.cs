@@ -50,6 +50,7 @@ namespace CitasApp.Infrastructure.Identity
                 : request.MedicoId.Trim();
 
             List<string> errors = [];
+            bool conflict = false;
             if (!RolesAplicacion.Todos.Contains(rol))
             {
                 errors.Add("El rol seleccionado no es valido.");
@@ -67,6 +68,7 @@ namespace CitasApp.Infrastructure.Identity
                     cancellationToken))
                 {
                     errors.Add("El medico seleccionado ya tiene un usuario vinculado.");
+                    conflict = true;
                 }
             }
             else
@@ -76,7 +78,16 @@ namespace CitasApp.Infrastructure.Identity
 
             if (errors.Count > 0)
             {
-                return new CrearUsuarioIdentityResult(false, null, errors);
+                return new CrearUsuarioIdentityResult(false, conflict, null, errors);
+            }
+
+            if (await _userManager.FindByEmailAsync(email) is not null)
+            {
+                return new CrearUsuarioIdentityResult(
+                    false,
+                    true,
+                    null,
+                    ["Ya existe un usuario con ese correo."]);
             }
 
             ApplicationUser user = new()
@@ -102,6 +113,7 @@ namespace CitasApp.Infrastructure.Identity
 
             return new CrearUsuarioIdentityResult(
                 true,
+                false,
                 await MapAsync(user),
                 Array.Empty<string>());
         }
@@ -121,6 +133,7 @@ namespace CitasApp.Infrastructure.Identity
         {
             return new CrearUsuarioIdentityResult(
                 false,
+                result.Errors.Any(error => error.Code.StartsWith("Duplicate", StringComparison.Ordinal)),
                 null,
                 result.Errors.Select(error => error.Description).ToList());
         }

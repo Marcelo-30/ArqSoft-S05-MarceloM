@@ -1,11 +1,15 @@
+using System.Security.Claims;
 using CitasApp.Api.Dtos;
+using CitasApp.Application.Security;
 using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Api.Controllers
 {
     [ApiController]
+    [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista + "," + RolesAplicacion.Medico)]
     [Route("api/medicos/{medicoId}/agenda")]
     public class AgendaMedicoController : ControllerBase
     {
@@ -28,6 +32,11 @@ namespace CitasApp.Api.Controllers
             string medicoId,
             CancellationToken cancellationToken)
         {
+            if (!PuedeAcceder(medicoId))
+            {
+                return Forbid();
+            }
+
             Medico? medico = await _medicoService.ObtenerPorIdAsync(medicoId, cancellationToken);
 
             if (medico == null)
@@ -48,6 +57,11 @@ namespace CitasApp.Api.Controllers
             string medicoId,
             CancellationToken cancellationToken)
         {
+            if (!PuedeAcceder(medicoId))
+            {
+                return Forbid();
+            }
+
             Medico? medico = await _medicoService.ObtenerPorIdAsync(medicoId, cancellationToken);
 
             if (medico == null)
@@ -70,6 +84,11 @@ namespace CitasApp.Api.Controllers
             DateOnly fecha,
             CancellationToken cancellationToken)
         {
+            if (!PuedeAcceder(medicoId))
+            {
+                return Forbid();
+            }
+
             Medico? medico = await _medicoService.ObtenerPorIdAsync(medicoId, cancellationToken);
 
             if (medico == null)
@@ -116,6 +135,14 @@ namespace CitasApp.Api.Controllers
                         PacienteTelefono = paciente?.Telefono ?? string.Empty
                     };
                 });
+        }
+
+        private bool PuedeAcceder(string medicoId)
+        {
+            return User.IsInRole(RolesAplicacion.Administrador) ||
+                User.IsInRole(RolesAplicacion.Recepcionista) ||
+                (User.IsInRole(RolesAplicacion.Medico) &&
+                    User.FindFirstValue("medico_id") == medicoId);
         }
     }
 }

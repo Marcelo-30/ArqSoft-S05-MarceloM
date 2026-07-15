@@ -44,8 +44,10 @@ namespace CitasApp.Infrastructure
 
             services.Configure<IdentitySeedOptions>(
                 configuration.GetSection(IdentitySeedOptions.SectionName));
+            services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
             services.AddScoped<IdentitySeeder>();
             services.AddScoped<UsuarioIdentityService>();
+            services.AddScoped<JwtAuthenticationService>();
 
             services.AddScoped<IPacienteRepository, PostgreSqlPacienteRepository>();
             services.AddScoped<IMedicoRepository, PostgreSqlMedicoRepository>();

@@ -1,10 +1,13 @@
 using CitasApp.Application.Services;
+using CitasApp.Application.Security;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Api.Controllers
 {
     [ApiController]
+    [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
     [Route("api/pacientes")]
     public class PacientesController : ControllerBase
     {

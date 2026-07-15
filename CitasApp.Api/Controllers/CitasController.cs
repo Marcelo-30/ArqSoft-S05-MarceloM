@@ -1,11 +1,16 @@
+using System.Security.Claims;
+using CitasApp.Api.Dtos;
 using CitasApp.Application.Exceptions;
+using CitasApp.Application.Security;
 using CitasApp.Application.Services;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/citas")]
     public class CitasController : ControllerBase
     {
@@ -19,6 +24,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<ActionResult<IReadOnlyList<Cita>>> ObtenerTodas(
             CancellationToken cancellationToken)
         {
@@ -26,6 +32,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<ActionResult<Cita>> ObtenerPorId(
             string id,
             CancellationToken cancellationToken)
@@ -37,6 +44,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet("paciente/{pacienteId}")]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<ActionResult<IReadOnlyList<Cita>>> ObtenerPorPaciente(
             string pacienteId,
             CancellationToken cancellationToken)
@@ -50,6 +58,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<ActionResult<Cita>> Crear(Cita cita, CancellationToken cancellationToken)
         {
             try
@@ -68,6 +77,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<IActionResult> Actualizar(
             string id,
             Cita cita,
@@ -92,12 +102,44 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
             bool eliminado = await _citaService.EliminarAsync(id, cancellationToken);
             return eliminado
                 ? NoContent()
                 : NotFound(new { mensaje = $"No se encontro la cita con id {id}." });
+        }
+
+        [HttpPatch("{id}/estado")]
+        [Authorize(Roles = RolesAplicacion.Medico)]
+        public async Task<IActionResult> ActualizarEstadoPropio(
+            string id,
+            ActualizarEstadoCitaDto request,
+            CancellationToken cancellationToken)
+        {
+            string? medicoId = User.FindFirstValue("medico_id");
+            if (string.IsNullOrWhiteSpace(medicoId))
+            {
+                return Forbid();
+            }
+
+            Cita? cita = await _citaService.ObtenerPorIdAsync(id, cancellationToken);
+            if (cita is null || cita.MedicoId != medicoId)
+            {
+                return NotFound();
+            }
+
+            cita.Estado = request.Estado;
+            try
+            {
+                await _citaService.ActualizarAsync(cita, cancellationToken);
+                return NoContent();
+            }
+            catch (ConflictoHorarioCitaException exception)
+            {
+                return Conflict(new { mensaje = exception.Message });
+            }
         }
     }
 }

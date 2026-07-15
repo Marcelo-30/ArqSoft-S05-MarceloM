@@ -15,6 +15,7 @@ namespace CitasApp.Infrastructure.Identity
 
     public sealed record CrearUsuarioIdentityResult(
         bool Succeeded,
+        bool Conflict,
         UsuarioIdentityDto? Usuario,
         IReadOnlyList<string> Errors);
 }

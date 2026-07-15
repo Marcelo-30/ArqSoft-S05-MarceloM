@@ -1,10 +1,13 @@
 using CitasApp.Application.Services;
+using CitasApp.Application.Security;
 using CitasApp.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CitasApp.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/medicos")]
     public class MedicosController : ControllerBase
     {
@@ -16,6 +19,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<ActionResult<IReadOnlyList<Medico>>> ObtenerTodos(
             CancellationToken cancellationToken)
         {
@@ -23,6 +27,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = RolesAplicacion.Administrador + "," + RolesAplicacion.Recepcionista)]
         public async Task<ActionResult<Medico>> ObtenerPorId(
             string id,
             CancellationToken cancellationToken)
@@ -34,6 +39,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         public async Task<ActionResult<Medico>> Crear(
             Medico medico,
             CancellationToken cancellationToken)
@@ -43,6 +49,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         public async Task<IActionResult> Actualizar(
             string id,
             Medico medico,
@@ -56,6 +63,7 @@ namespace CitasApp.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = RolesAplicacion.Administrador)]
         public async Task<IActionResult> Eliminar(string id, CancellationToken cancellationToken)
         {
             bool eliminado = await _medicoService.EliminarAsync(id, cancellationToken);
