@@ -1,7 +1,9 @@
+using CitasApp.Application.Exceptions;
 using CitasApp.Domain.Interfaces;
 using CitasApp.Domain.Models;
 using CitasApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace CitasApp.Infrastructure.Repositories
 {
@@ -66,7 +68,7 @@ namespace CitasApp.Infrastructure.Repositories
         public async Task AgregarAsync(Cita cita, CancellationToken cancellationToken = default)
         {
             await _context.Citas.AddAsync(cita, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await GuardarAsync(cancellationToken);
         }
 
         public async Task<bool> ActualizarAsync(
@@ -88,7 +90,7 @@ namespace CitasApp.Infrastructure.Repositories
             existente.Motivo = cita.Motivo;
             existente.Estado = cita.Estado;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await GuardarAsync(cancellationToken);
             return true;
         }
 
@@ -127,6 +129,22 @@ namespace CitasApp.Infrastructure.Repositories
                 .AsNoTracking()
                 .OrderBy(cita => cita.Fecha)
                 .ThenBy(cita => cita.Hora);
+        }
+
+        private async Task GuardarAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception)
+                when (exception.InnerException is PostgresException
+                {
+                    SqlState: PostgresErrorCodes.UniqueViolation
+                })
+            {
+                throw new ConflictoHorarioCitaException();
+            }
         }
     }
 }
