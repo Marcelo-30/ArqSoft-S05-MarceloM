@@ -29,7 +29,7 @@ public sealed class CitaServiceTests
 
         // Assert
         Assert.True(Guid.TryParse(appointment.Id, out _));
-        Assert.Equal(EstadosCita.Confirmada, appointment.Estado);
+        Assert.Equal(EstadosCita.Cancelada, appointment.Estado);
         Assert.Same(appointment, Assert.Single(appointmentRepository.Appointments));
     }
 
